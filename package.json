@@ -6,26 +6,34 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build && npm run execute",
-    "build": "tsc --outDir ./build --lib ES5 ./src/server.ts --esModuleInterop true",
-    "execute": "../nodeenv/bin/node ./build/src/server.js "
+    "build": "npx tsc",
+    "execute": "../venvs/node/node_12.18.3/bin/node ./build/server.js",
+    "reset": "rm -rf ./build/ ./node_modules && npm i --save && npm run start"
   },
   "author": "rse",
   "license": "ISC",
   "devDependencies": {
+    "@types/config": "0.0.36",
+    "@types/crypto-js": "^3.1.47",
     "@types/express": "^4.17.7",
     "@types/graphql": "^14.5.0",
+    "@types/mongodb": "^3.5.25",
+    "@types/mongoose": "^5.7.36",
     "@types/node": "^14.0.24",
-    "@types/pdf-image": "^2.0.0",
     "@types/uuid": "^8.0.0",
     "typescript": "^3.9.7"
   },
   "dependencies": {
+    "apollo-datasource": "^0.7.2",
     "apollo-server": "^2.16.0",
     "apollo-server-express": "^2.16.0",
-    "fs-capacitor": "^6.2.0",
+    "config": "^3.3.1",
+    "crypto-js": "^4.0.0",
     "graphql": "^15.3.0",
     "graphql-upload": "^10.0.0",
-    "pdf-image": "^2.0.0",
+    "mongodb": "^3.6.0",
+    "mongoose": "^5.9.28",
+    "pdf-lib": "^1.9.0",
     "uuid": "^8.2.0"
   }
 }

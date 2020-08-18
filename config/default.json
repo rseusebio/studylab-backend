@@ -1,0 +1,13 @@
+{
+    "MongoDb": {
+        "User": "rse",
+        "Password": "R$&mongo95",
+        "Host": "ignite.fjyqf.gcp.mongodb.net",
+        "DbName": "IgnitionStudio"
+    },
+    "Authentication":
+    {
+        "SecretKey": "o que hoje não sabemos, amanhã saberemos",
+        "HashKey": "navegar é preciso, viver não é preciso"
+    }
+}

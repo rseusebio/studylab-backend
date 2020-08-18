@@ -1,4 +1,4 @@
-export default  class UploadResponse {
+class BookUploadResponse {
     public FileName:   string;
     public Uploaded:   boolean;
     public Size:       number;
@@ -15,3 +15,5 @@ export default  class UploadResponse {
         this.Enconding  = encoding;
     }
 }
+
+export default BookUploadResponse

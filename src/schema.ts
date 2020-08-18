@@ -75,9 +75,20 @@ type UploadResponse
     Error:      String
 }`;
 
-const MUTATION = `
+//#region  Mutation Definitions
+const CreateUserResponse = `
+type CreateUserResponse
+{
+    Success: Boolean!
+    Error:   String
+}`;
+//#endregion
+
+
+const Mutation = `
 type Mutation {
     fileUpload (file: Upload!): UploadResponse!
+    createUser (login: String!, password: String!): CreateUserResponse!
 }`;
 
 const typeDefs = gql`
@@ -90,7 +101,8 @@ const typeDefs = gql`
     ${LOGIN_RESPONSE}
     ${QUERY}
     ${UPLOAD_RESPONSE}
-    ${MUTATION}
+    ${CreateUserResponse}
+    ${Mutation}
 `;
 
 export default typeDefs;
