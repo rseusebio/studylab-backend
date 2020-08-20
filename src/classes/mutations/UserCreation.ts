@@ -18,11 +18,13 @@ class UserRecord
 
     constructor (login: string, pwd: string)
     {
+        
         this.Login      = login;
         this.Password   = pwd;
 
         const now = new Date();
-
+        
+        this._id            = new ObjectId ();
         this.CreationDate   = now;
         this.LastLoginDate  = now;
         this.LastLoginDate  = now;

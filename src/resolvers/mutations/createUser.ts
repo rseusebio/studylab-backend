@@ -4,9 +4,9 @@ import  { UserCreationArgs,
           UserCreationResponse } from '../../classes/mutations/UserCreation';
 import {encrypt}                 from '../../utils/cryptography';
 
-const creatUser =  async (_, args , context, info): Promise<UserCreationResponse> => 
+const creatUser =  async (_, args , context): Promise<UserCreationResponse> => 
 {   
-    const {dataSources} = (info as ResolveInfo);
+    const {dataSources} = (context as ResolveInfo);
 
     const { login, password } = (args as UserCreationArgs);
 
@@ -28,7 +28,9 @@ const creatUser =  async (_, args , context, info): Promise<UserCreationResponse
     const {ignitionDb} = dataSources;
 
     // 1. Check if login already exists
-    if (ignitionDb.getUserByLogin (login) != null)
+    const user = await ignitionDb.getUserByLogin (login);
+
+    if (user)
     {
         res.Error = "USER_ALREADY_EXISTS";
 
@@ -37,10 +39,12 @@ const creatUser =  async (_, args , context, info): Promise<UserCreationResponse
 
     // 2. Try to insert
     const inserted  = await ignitionDb.insertNewUser (login, encrypt (password));
+
+    console.info ("inserted: ", inserted);
     
     if (!inserted)
     {
-        res.Error = "FAILED_TO_INSERT";
+        res.Error = "FAILED_TO_INSERT_USER";
         
         return res;
     }

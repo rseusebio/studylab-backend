@@ -49,19 +49,23 @@ type MarkUp {
     PageWidth:  Float!
 }`;
 
-const LOGIN_RESPONSE = `
+const LoginResponse = `
 type LoginResponse
 {
-    id:         ID
-    Name:       String
-    Password:   String
-    Enabled:    String
+    UserName:   String
+    Error:      String
     Authorized: Boolean!
 }`;
 
-const QUERY = `
+const Query = `
 type Query {
     health_check: LoginResponse!
+
+    bookCovers: Boolean
+    bookInfo: Boolean
+    page: Boolean
+    smallPages: Boolean
+    pageEditions: Boolean
 }`;
 
 const UPLOAD_RESPONSE = `
@@ -76,8 +80,8 @@ type UploadResponse
 }`;
 
 //#region  Mutation Definitions
-const CreateUserResponse = `
-type CreateUserResponse
+const UserCreationResponse = `
+type UserCreationResponse
 {
     Success: Boolean!
     Error:   String
@@ -87,8 +91,14 @@ type CreateUserResponse
 
 const Mutation = `
 type Mutation {
-    fileUpload (file: Upload!): UploadResponse!
-    createUser (login: String!, password: String!): CreateUserResponse!
+    bookUpload (file: Upload!): UploadResponse!
+    createUser (login: String!, password: String!): UserCreationResponse!
+    
+    disableUser:  Boolean
+    disablePages: Boolean
+    setBookCover: Boolean
+    editPage:     Boolean
+
 }`;
 
 const typeDefs = gql`
@@ -98,10 +108,10 @@ const typeDefs = gql`
     ${CATEGORY}
     ${PAGE}
     ${MARKUP}
-    ${LOGIN_RESPONSE}
-    ${QUERY}
+    ${LoginResponse}
+    ${Query}
     ${UPLOAD_RESPONSE}
-    ${CreateUserResponse}
+    ${UserCreationResponse}
     ${Mutation}
 `;
 

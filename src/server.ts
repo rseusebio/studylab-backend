@@ -1,50 +1,65 @@
 import { ApolloServer, ServerInfo } from 'apollo-server';
 import typeDefs                     from './schema';
 import context                      from './context';
+import path                         from 'path';
 import bookUpload                   from './resolvers/mutations/bookUpload';
 import IgnitionDb                   from './datasources/IgnitionDb';
-import path                         from 'path';
 import createUser                   from './resolvers/mutations/createUser';
+import Authorizer                   from './classes/Authorizer';
 
 const server = new ApolloServer ({
     typeDefs: typeDefs,
-    context: context,
     resolvers: 
     {
         Query: 
         {
-            health_check: (parent, args, context, info) => {
-                return context
+            health_check: async (parent, args, context, info) => {
+
+                const authorizer: Authorizer = context.authorizer;
+                const db:         IgnitionDb = context.dataSources.ignitionDb;
+
+                await authorizer.validateUser (db);
+
+                console.info ('authorizer: ', authorizer);
+
+                return {
+                    ...authorizer
+                }
+
             },
 
             // get all book covers to list on a page
             bookCovers: ()=>{
-
+                return false;
             },
 
             // get last saved informations about a book
             bookInfo: ()=>{
-
-            },
+                return false;
+            },  
             
             // get a specific page(s) from a book 
             page: ()=>{
-            
+                return false;
             },
 
             // get pages in a smaller size
             // for page slider
             smallPages: () =>{
-
+                return false;
             },
 
             // get last editions of a page
             pageEditions: () =>{
-
+                return false;
             }       
         },
         Mutation:
         {
+            //disable User
+            disableUser: ()=>{
+                return false;
+            },
             // sign up to the site 
             createUser,
             
@@ -53,17 +68,17 @@ const server = new ApolloServer ({
 
             // disable one or more pages
             disablePages: ()=>{
-
+                return false;
             },
 
             // set a new book cover
             setBookCover: ()=>{
-
+                return false;
             },
 
             // save last changes of a page
             editPage: ()=>{
-
+                return false;
             },
         }
     },
@@ -71,19 +86,17 @@ const server = new ApolloServer ({
         return  {
             ignitionDb: new IgnitionDb ()
         };  
-    }
+    },
+    context: context
 });
 
 
 
-server
-    .listen (4002)
-    .then (
-            (value: ServerInfo) => {
-                console.info (`running at: ${value.url}`);
+server.listen (4002)
+      .then ((value: ServerInfo) => {
+          console.info (`running at: ${value.url}`);
 
-                process.env["NODE_CONFIG_DIR"] = path.join (path.dirname (__dirname), "./config/");
+          process.env["NODE_CONFIG_DIR"] = path.join (path.dirname (__dirname), "./config/");
 
-                console.info (process.env["NODE_CONFIG_DIR"]);  
-            }   
-    );
+          console.info (process.env["NODE_CONFIG_DIR"]);
+        });

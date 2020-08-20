@@ -1,16 +1,19 @@
-import { ContextFunction } from 'apollo-server-core';
-import { ExpressContext } from 'apollo-server-express/dist/ApolloServer';
-import ServerContext from './classes/ServerContext';
+import { ContextFunction }  from 'apollo-server-core';
+import { ExpressContext }   from 'apollo-server-express/dist/ApolloServer';
+import Authorizer           from './classes/Authorizer';
 
-const context: ContextFunction<ExpressContext, ServerContext> = (expressContext: ExpressContext) => {
+
+const context: ContextFunction<ExpressContext, any> = (expressContext: ExpressContext) => {
 
     const { req, res } = expressContext;
 
-    const ctx: ServerContext = new ServerContext ();
+    console.info (req.headers);
 
-    ctx.validateUser (req?.headers?.cookie, req?.headers?.authorization, res)
+    const authorizer: Authorizer = new Authorizer (req?.headers?.cookie, req?.headers?.authorization, res);
 
-    return ctx;
+    return {
+        authorizer
+    };
 }
 
 export default context;
