@@ -29,7 +29,8 @@ export default class Authorizer
 
     public async validateUser (db: IgnitionDb) 
     {
-
+        // ToDo:
+        // install a cookie parser
         if (this.Cookie && (this.Cookie as string).search (Authorizer.CookieName) >= 0) {
             
             this.Authorized = true;
@@ -78,11 +79,11 @@ export default class Authorizer
         // ToDo:
         // if (!user.Enabled)
 
-        const recievedPwd = encrypt (pwd);
+        const receivedPwd = encrypt (pwd);
 
-        console.info (recievedPwd, pwd)
+        console.info (receivedPwd, user.Password)
 
-        if (recievedPwd != user.Password)
+        if (receivedPwd != user.Password)
         {
             this.Error = "ACCESS_DENIED";
 

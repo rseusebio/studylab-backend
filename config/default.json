@@ -7,7 +7,7 @@
     },
     "Authentication":
     {
-        "SecretKey": "o que hoje não sabemos, amanhã saberemos",
-        "HashKey": "navegar é preciso, viver não é preciso"
+        "SecretKey": "ignition_secret_key",
+        "HashKey": "ignition_hash_key"
     }
 }
