@@ -7,8 +7,6 @@ const context: ContextFunction<ExpressContext, any> = (expressContext: ExpressCo
 
     const { req, res } = expressContext;
 
-    console.info (req.headers);
-
     const authorizer: Authorizer = new Authorizer (req?.headers?.cookie, req?.headers?.authorization, res);
 
     return {

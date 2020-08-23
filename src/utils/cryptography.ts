@@ -67,5 +67,3 @@ const test = ()=>{
         console.info ("similar");
     }
 }
-
-test ();

@@ -9,6 +9,7 @@ import stream                       from "stream";
 import IgnitionDb                   from "../../datasources/IgnitionDb";
 import { BookInformation, 
          BookProcessResponse }      from "../../classes/mutations/BookUpload";
+import InternalContext from "../../classes/InternalContext";
 
 const pipelinePromise = util.promisify (stream.pipeline);
 
@@ -27,32 +28,44 @@ const createStorageEnvironment = (): BookInformation =>
 
     fs.mkdirSync (bookFolder);
 
-    const filePath    = path.join (bookFolder, "main.pdf");
+    const filePath    = path.join (bookFolder, "book.pdf");
     const writeStream = fs.createWriteStream (filePath);
 
     return {
         directoryPath: bookFolder,
+        filePath,
         writeStream,
         ID: bookID
     };
 }
 
+const deleteFiles = (bookInfo: BookInformation) => 
+{
+    if (fs.existsSync (bookInfo.filePath))
+    {
+        fs.unlinkSync (bookInfo.filePath);
+    }
+    
+    if (fs.existsSync (bookInfo.directoryPath))
+    {
+        fs.rmdirSync (bookInfo.directoryPath, {recursive: true});
+    }
+}
+
 //  Convert tmp PDF file to PNG images
-const processAndUploadBook =  async  (bookInfo: BookInformation, bookDB: IgnitionDb): Promise<BookProcessResponse> =>
+const processAndUploadBook =  async  (bookInfo: BookInformation, bookDb: IgnitionDb): Promise<BookProcessResponse> =>
 {
     let response = { Uploaded: false, Error: ""};
 
-    const book = path.join (bookInfo.directoryPath, "book.pdf");
-
     // 1. Check if the book exists
-    if (!fs.existsSync  (bookInfo.directoryPath) || !fs.existsSync (book))
+    if (!fs.existsSync  (bookInfo.directoryPath) || !fs.existsSync (bookInfo.filePath))
     {
         response.Error = "NO_DIRECTORY_FOUND";
         
         return response;
     }
     
-    const bookDocument = await PDFDocument.load (fs.readFileSync (book));
+    const bookDocument = await PDFDocument.load (fs.readFileSync (bookInfo.filePath));
 
     // 2. Check if there's any pages in this book
     if (bookDocument.getPageCount () <= 0)
@@ -84,7 +97,7 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDB: Ignitio
             // ToDo:
             // before upload we should compress the file
 
-            const result = await bookDB.saveFile (singlePageFilePath);
+            const result = await bookDb.saveFile (singlePageFilePath);
 
             if (!result)
             {
@@ -97,8 +110,6 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDB: Ignitio
         }
         catch (err)
         {
-            console.info (`error: `, err);
-
             response.Error = "UPLOAD_TO_DB_ERROR";
 
             return response;
@@ -111,20 +122,40 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDB: Ignitio
 }
 
 // Resolver to upload a new book 
-const bookUpload = async (parent, { file }, { dataSources }): Promise<BookUploadResponse> => {
+const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
 
+    const { authorizer, dataSources } = (context as InternalContext);
+
+    // maybe we should use moment.js
+    // to get timezone
+    const uploadDate = new Date ();
+
+    let response = new BookUploadResponse ("", false, -1, "", "");
+
+    // 0. Checking if credential are valide or not
+    await authorizer.validateUser (dataSources.ignitionDb);
+
+    response.Error      = authorizer.Error;
+    response.Authorized = authorizer.Authorized;
+
+    if (!authorizer.Authorized)
+    {
+        return response;
+    } 
+
+    // ToDo:
+    // check if the system has memory enough
+    // to store the file locally
     const loadedFile = await (file as Promise<FileUpload>);
 
     if (!loadedFile) 
     {
-        let res = new BookUploadResponse ("", false, -1, "", "");
+        response.Error = "Empty file";
 
-        res.Error = "Empty file";
-
-        return res;
+        return response;
     }
 
-    let response = new BookUploadResponse (loadedFile.filename, false, -1, loadedFile.mimetype, loadedFile.encoding);
+    response = new BookUploadResponse (loadedFile.filename, false, -1, loadedFile.mimetype, loadedFile.encoding);
 
     // 1. Check if received file type is PDF or Not.
     if (loadedFile.mimetype != "application/pdf")
@@ -148,11 +179,29 @@ const bookUpload = async (parent, { file }, { dataSources }): Promise<BookUpload
 
     response.Size = readStream.bytesRead;
 
-    //4. Try to upload the book
-    const processResponse = await processAndUploadBook (bookInfo, dataSources.ignitionDb);
+    if (!dataSources.ignitionDb.insertBookRecord (authorizer.userLogin, bookInfo.ID,loadedFile.filename, uploadDate))
+    {
+        response.Uploaded = false;
+        response.Error    = "FAILED_TO_INSERT_RECORD";
 
-    response.Uploaded = processResponse.Uploaded;
-    response.Error    = processResponse.Error;
+        return response;
+    }
+
+    //4. Try to upload the book
+    const uploadResponse = await processAndUploadBook (bookInfo, dataSources.ignitionDb);
+
+    deleteFiles (bookInfo);
+
+    response.Uploaded = uploadResponse.Uploaded;
+    response.Error    = uploadResponse.Error;
+
+    if (!uploadResponse.Uploaded)
+    {
+        dataSources.ignitionDb.removeBookRecord (bookInfo.ID);
+        // if failed we should retry again
+        // how ?
+        // why should it fail ?
+    }
 
     return response;
 }

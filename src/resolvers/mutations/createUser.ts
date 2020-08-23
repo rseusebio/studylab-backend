@@ -1,12 +1,11 @@
-import  CryptoJS                 from 'crypto-js';
-import  ResolveInfo              from '../../classes/ResolveInfo';
+import  InternalContext              from '../../classes/InternalContext';
 import  { UserCreationArgs, 
           UserCreationResponse } from '../../classes/mutations/UserCreation';
 import {encrypt}                 from '../../utils/cryptography';
 
 const creatUser =  async (_, args , context): Promise<UserCreationResponse> => 
 {   
-    const {dataSources} = (context as ResolveInfo);
+    const { dataSources } = (context as InternalContext);
 
     const { login, password } = (args as UserCreationArgs);
 
@@ -39,8 +38,6 @@ const creatUser =  async (_, args , context): Promise<UserCreationResponse> =>
 
     // 2. Try to insert
     const inserted  = await ignitionDb.insertNewUser (login, encrypt (password));
-
-    console.info ("inserted: ", inserted);
     
     if (!inserted)
     {

@@ -5,7 +5,8 @@ import path                         from 'path';
 import bookUpload                   from './resolvers/mutations/bookUpload';
 import IgnitionDb                   from './datasources/IgnitionDb';
 import createUser                   from './resolvers/mutations/createUser';
-import Authorizer                   from './classes/Authorizer';
+import healthCheck                  from './resolvers/queries/healthCheck';
+import getBooks                     from './resolvers/queries/getBooks';
 
 const server = new ApolloServer ({
     typeDefs: typeDefs,
@@ -13,20 +14,10 @@ const server = new ApolloServer ({
     {
         Query: 
         {
-            health_check: async (parent, args, context, info) => {
+            healthCheck,
 
-                const authorizer: Authorizer = context.authorizer;
-                const db:         IgnitionDb = context.dataSources.ignitionDb;
-
-                await authorizer.validateUser (db);
-
-                console.info ('authorizer: ', authorizer);
-
-                return {
-                    ...authorizer
-                }
-
-            },
+            // get all books information
+            getBooks,
 
             // get all book covers to list on a page
             bookCovers: ()=>{

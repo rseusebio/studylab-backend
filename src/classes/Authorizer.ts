@@ -1,20 +1,27 @@
-import { Response } from 'express';
+import { Response, CookieOptions } from 'express';
 import { v1 as uuidv1 } from 'uuid';
 import IgnitionDb from '../datasources/IgnitionDb';
 import { encrypt } from '../utils/cryptography';
+import { UserRecord } from './mutations/UserCreation';
 
 export default class Authorizer 
 {
 
     public Authorized: boolean;
-    public UserName:   string;
     public Error:      string;
 
+    private User:   UserRecord;
     private Cookie: string | undefined;
     private Auth:   string | undefined;
     private Res:    Response; // An internal private field referencing to the user response;
 
     private static CookieName: string = "studylab"
+
+    get userLogin (): string
+    {
+
+        return this.User?.Login;
+    }
 
     constructor (cookie: string | undefined, auth: string | undefined, res: Response) 
     {   
@@ -23,7 +30,6 @@ export default class Authorizer
         this.Res    = res;
 
         this.Authorized = false;
-        this.UserName   = "";
         this.Error      = "";
     }
 
@@ -65,11 +71,9 @@ export default class Authorizer
             return;
         }
 
-        console.info (login, pwd);
+        this.User = await db.getUserByLogin (login);
 
-        const user = await db.getUserByLogin (login);
-
-        if (!user)
+        if (!this.User)
         {
             this.Error = "ACCESS_DENIED";
 
@@ -81,9 +85,7 @@ export default class Authorizer
 
         const receivedPwd = encrypt (pwd);
 
-        console.info (receivedPwd, user.Password)
-
-        if (receivedPwd != user.Password)
+        if (receivedPwd != this.User.Password)
         {
             this.Error = "ACCESS_DENIED";
 
@@ -91,8 +93,13 @@ export default class Authorizer
         }
 
         this.Authorized  = true;
+
+        // which mechanism checks it?
+        const cookieOpts: CookieOptions ={
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        }
         
-        this.Res.cookie (Authorizer.CookieName, uuidv1 ());
+        this.Res.cookie (Authorizer.CookieName, uuidv1 (), cookieOpts);
 
         return;
     }

@@ -7,6 +7,7 @@ import stream                                      from 'stream';
 import path                                        from 'path';
 import fs                                          from 'fs';
 import { UserRecord }                              from '../classes/mutations/UserCreation';
+import { BookRecord } from '../classes/mutations/BookUpload';
 
 const pipelinePromise = util.promisify (stream.pipeline);
 
@@ -46,16 +47,12 @@ class IgnitionDb extends DataSource
             }
             catch (error)
             {
-                console.info ("COULD NOT CONNECT: ", error);
-
                 return false;
             }
             finally 
             {
                 if (!this.client.isConnected ())
                 {
-                    console.info ("STILL COULD NOT CONNECT");
-
                     return false;
                 }
             }
@@ -86,7 +83,6 @@ class IgnitionDb extends DataSource
         catch (err)
         {
             this.error = err + "";
-            console.info ("err: ", err);
 
             return false;
         }
@@ -113,8 +109,6 @@ class IgnitionDb extends DataSource
 
         const user = await userColl.findOne<UserRecord> ({"Login": login});
 
-        console.info (user);
-
         return user;
     }
 
@@ -131,13 +125,11 @@ class IgnitionDb extends DataSource
 
         const db = this.client.db (DbName);
 
-        const collName = "Users";
-
-        const userColl = db.collection<UserRecord> (collName);
+        const userColl = db.collection<UserRecord> ("Users");
 
         const user = new UserRecord (login, pwd);
         
-        const { insertedCount, insertedId, result } = await userColl.insertOne (user);
+        const { insertedCount } = await userColl.insertOne (user);
 
         if (insertedCount == 1)
         {
@@ -145,6 +137,78 @@ class IgnitionDb extends DataSource
         }
         
         return false;
+    }
+
+    async insertBookRecord (login: string, bookId: string, fileName: string, uploadDate: Date): Promise<boolean>
+    {
+        if (await this.isClientConnected () == false)
+        {
+            return false;
+        }
+
+        const { DbName } = this.mongoConfig;
+
+        const db = this.client.db (DbName);
+
+        const coll = db.collection<BookRecord> ("Books");
+
+        const title = fileName.endsWith ('.pdf') ? fileName.replace (".pdf", "") : fileName;
+
+        const book = new BookRecord (login, bookId, title, uploadDate);
+        
+        const { insertedCount } = await coll.insertOne (book);
+
+        if (insertedCount == 1)
+        {
+            return true
+        }
+        
+        return false;
+    }
+
+    async removeBookRecord (bookId: string): Promise<boolean>
+    {
+        if (await this.isClientConnected () == false)
+        {
+            return false;
+        }
+
+        const { DbName } = this.mongoConfig;
+
+        const db = this.client.db (DbName);
+
+        const coll = db.collection<BookRecord> ("Books");
+        
+        const { deletedCount } = await coll.deleteOne ({ Id: bookId});
+
+        if (deletedCount == 1)
+        {
+            return true
+        }
+        
+        return false;
+    }
+
+    async getUserBooks (login: string, sizeLimit: number = 10): Promise<Array<BookRecord>>
+    {
+        let books = new Array<BookRecord> ();
+
+        if (await this.isClientConnected () == false)
+        {
+            return books
+        }
+
+        const { DbName } = this.mongoConfig;
+
+        const db = this.client.db (DbName);
+
+        const coll = db.collection<BookRecord> ("Books");
+
+        const query = {
+            "Login": login
+        }
+
+        return await coll.find (query).limit (sizeLimit).toArray ();
     }
 
 }

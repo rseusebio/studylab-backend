@@ -52,15 +52,34 @@ type MarkUp {
 const LoginResponse = `
 type LoginResponse
 {
-    UserName:   String
-    Error:      String
-    Authorized: Boolean!
+    Error:       String
+    Authorized:  Boolean!
+    ElapsedTime: Float
 }`;
+
+const BookRecord = `
+type BookRecord 
+{
+    Id:         String
+    Title:      String
+    UploadDate: String
+}
+`
+
+const BooksResponse = ` 
+type BooksResponse
+{
+    Authorized: Boolean
+    Error:      String
+    Books:      [BookRecord]
+}
+`
 
 const Query = `
 type Query {
-    health_check: LoginResponse!
+    healthCheck: LoginResponse!
 
+    getBooks (limit: Int): BooksResponse!
     bookCovers: Boolean
     bookInfo: Boolean
     page: Boolean
@@ -71,12 +90,14 @@ type Query {
 const UPLOAD_RESPONSE = `
 type UploadResponse 
 {
-    FileName:   String
-    Uploaded:   Boolean
-    Size:       Float
-    Type:       String
-    Enconding:  String
-    Error:      String
+    FileName:    String
+    Uploaded:    Boolean
+    Size:        Float
+    Type:        String
+    Enconding:   String
+
+    Authorized:  Boolean
+    Error:       String
 }`;
 
 //#region  Mutation Definitions
@@ -102,6 +123,7 @@ type Mutation {
 }`;
 
 const typeDefs = gql`
+
     ${USER}
     ${BOOK}
     ${AUTHOR}
@@ -109,9 +131,15 @@ const typeDefs = gql`
     ${PAGE}
     ${MARKUP}
     ${LoginResponse}
+
+    ${BookRecord}
+    ${BooksResponse}
+
     ${Query}
+
     ${UPLOAD_RESPONSE}
     ${UserCreationResponse}
+
     ${Mutation}
 `;
 
