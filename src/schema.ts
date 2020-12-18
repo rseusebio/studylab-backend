@@ -63,8 +63,15 @@ type BookRecord
     Id:         String
     Title:      String
     UploadDate: String
-}
-`
+}`;
+
+const BookCoverRecord = `
+type BookCoverRecord 
+{
+    Id:         String
+    Data:      String
+}`;
+
 
 const BooksResponse = ` 
 type BooksResponse
@@ -72,22 +79,36 @@ type BooksResponse
     Authorized: Boolean
     Error:      String
     Books:      [BookRecord]
-}
-`
+}`;
+
+const BookCoversResponse = ` 
+
+type BookCoversResponse
+{
+    Authorized:   Boolean
+    Error:        String
+    BookCovers:   [BookCoverRecord]
+    Failures:      [String]
+    ElapsedTime:  Float
+
+}`;
 
 const Query = `
-type Query {
+type Query 
+{
     healthCheck: LoginResponse!
 
     getBooks (limit: Int): BooksResponse!
-    bookCovers: Boolean
+
+    getBookCovers (BookIds: [String]): BookCoversResponse
+
     bookInfo: Boolean
     page: Boolean
     smallPages: Boolean
     pageEditions: Boolean
 }`;
 
-const UPLOAD_RESPONSE = `
+const BookUploadResponse = `
 type UploadResponse 
 {
     FileName:    String
@@ -98,6 +119,7 @@ type UploadResponse
 
     Authorized:  Boolean
     Error:       String
+    ElapsedTime: Float
 }`;
 
 //#region  Mutation Definitions
@@ -137,8 +159,12 @@ const typeDefs = gql`
 
     ${Query}
 
-    ${UPLOAD_RESPONSE}
+    ${BookCoversResponse}
+
+    ${BookUploadResponse}
     ${UserCreationResponse}
+
+    ${BookCoverRecord}
 
     ${Mutation}
 `;

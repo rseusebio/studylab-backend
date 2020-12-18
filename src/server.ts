@@ -7,6 +7,7 @@ import IgnitionDb                   from './datasources/IgnitionDb';
 import createUser                   from './resolvers/mutations/createUser';
 import healthCheck                  from './resolvers/queries/healthCheck';
 import getBooks                     from './resolvers/queries/getBooks';
+import getBookCovers                from './resolvers/queries/getBookCovers';
 
 const server = new ApolloServer ({
     typeDefs: typeDefs,
@@ -20,9 +21,7 @@ const server = new ApolloServer ({
             getBooks,
 
             // get all book covers to list on a page
-            bookCovers: ()=>{
-                return false;
-            },
+            getBookCovers,
 
             // get last saved informations about a book
             bookInfo: ()=>{

@@ -1,21 +1,25 @@
 import { DataSource }                              from 'apollo-datasource';
 import config                                      from 'config';
 import MongoConfig                                 from '../classes/config/MongoConfig';
-import mongodb, { MongoClient, GridFSBucket, CollectionInsertOneOptions }      from 'mongodb';
+import mongodb, { MongoClient, 
+                  GridFSBucket, 
+                  MongoClientOptions, 
+                  GridFSBucketOptions}             from 'mongodb';
 import util                                        from 'util';
 import stream                                      from 'stream';
 import path                                        from 'path';
 import fs                                          from 'fs';
 import { UserRecord }                              from '../classes/mutations/UserCreation';
-import { BookRecord } from '../classes/mutations/BookUpload';
+import { BookRecord }                              from '../classes/mutations/BookUpload';
 
 const pipelinePromise = util.promisify (stream.pipeline);
 
 class IgnitionDb extends DataSource
 {
-    client:      MongoClient;
-    mongoConfig: MongoConfig;
-    error:       string;
+    private     client:      MongoClient;
+    private     mongoConfig: MongoConfig;
+    private     error:       string;
+    private     isConnected: boolean;
 
     constructor ()
     {
@@ -23,9 +27,21 @@ class IgnitionDb extends DataSource
 
         this.mongoConfig = config.get<MongoConfig> ("MongoDb");
 
-        this.client      = new mongodb.MongoClient (this.retreiveURI (), { useNewUrlParser : true, useUnifiedTopology: true });   
-        
+        const clientOpts: MongoClientOptions =
+        {
+            useNewUrlParser:     true,
+            useUnifiedTopology:  true,
+            poolSize:            100,
+            connectTimeoutMS:    99999,
+            keepAlive:           true,
+            connectWithNoPrimary: true
+        }
+
+        this.client      = new mongodb.MongoClient (this.retreiveURI (), clientOpts);
+
         this.error       = ""; 
+
+        this.isConnected = false;
     }
 
     retreiveURI ()
@@ -39,29 +55,29 @@ class IgnitionDb extends DataSource
 
     async isClientConnected ()
     {
-        if (!this.client.isConnected ())
+        if (!this.isConnected)
         {
+            this.client.setMaxListeners (200);
             try
             {
-                await this.client.connect (); 
+                await this.client.connect ();
+
+                this.isConnected = true;
+
+                return true;
             }
-            catch (error)
+            catch (err)
             {
+                console.info ("connection error: ", err);
+
                 return false;
-            }
-            finally 
-            {
-                if (!this.client.isConnected ())
-                {
-                    return false;
-                }
             }
         }
 
         return true;
     }
 
-    async saveFile (filePath: string): Promise<boolean>
+    async saveFile (filePath: string, chunkSize: number): Promise<boolean>
     {
         const isConnected = await this.isClientConnected ();
 
@@ -72,7 +88,12 @@ class IgnitionDb extends DataSource
 
         const { DbName } = this.mongoConfig;
 
-        const bucket = new GridFSBucket (this.client.db (DbName));
+        const bucketOps: GridFSBucketOptions = { 
+            chunkSizeBytes: chunkSize,
+            bucketName:     "Pages"
+        }
+
+        const bucket = new GridFSBucket (this.client.db (DbName), bucketOps);
 
         const fileName = path.basename (filePath);
 
@@ -83,6 +104,8 @@ class IgnitionDb extends DataSource
         catch (err)
         {
             this.error = err + "";
+
+            console.info ("file upload error: ", err);
 
             return false;
         }
@@ -209,6 +232,43 @@ class IgnitionDb extends DataSource
         }
 
         return await coll.find (query).limit (sizeLimit).toArray ();
+    }
+
+    async getBookPage (bookId: string, page: number, tmpDir: string): Promise<boolean>
+    {
+        const isConnected = await this.isClientConnected ();
+
+        if (!isConnected)
+        {
+            return false;
+        }
+
+        const { DbName } = this.mongoConfig;
+
+        const bucketOps: GridFSBucketOptions = { 
+            bucketName:     "Pages"
+        }
+
+        const fileName = `${bookId}_${page}.pdf`;
+
+        const pagePath = path.join (tmpDir, fileName);
+
+        const bucket = new GridFSBucket (this.client.db (DbName), bucketOps);
+
+        try
+        {
+            await pipelinePromise (bucket.openDownloadStreamByName (fileName), fs.createWriteStream (pagePath));
+        }
+        catch (err)
+        {
+            this.error = err + "";
+
+            console.info ("file upload error: ", err);
+
+            return false;
+        }
+
+        return true;
     }
 
 }

@@ -31,19 +31,12 @@ export default class Authorizer
 
         this.Authorized = false;
         this.Error      = "";
+
+        this.extractAuth ();
     }
 
-    public async validateUser (db: IgnitionDb) 
+    public extractAuth (): void
     {
-        // ToDo:
-        // install a cookie parser
-        if (this.Cookie && (this.Cookie as string).search (Authorizer.CookieName) >= 0) {
-            
-            this.Authorized = true;
-
-            return;
-        }
-
         if (!this.Auth)
         {
             this.Error = "NO_CREDENTIALS";
@@ -71,7 +64,29 @@ export default class Authorizer
             return;
         }
 
-        this.User = await db.getUserByLogin (login);
+        this.User = new UserRecord (login, pwd);
+    }
+
+    public async validateUser (db: IgnitionDb) 
+    {
+        // ToDo:
+        // install a cookie parser
+        if (this.Cookie && (this.Cookie as string).search (Authorizer.CookieName) >= 0) {
+            
+            this.Authorized = true;
+
+            return;
+        }
+
+        if (!this.User)
+        {            
+            return;
+        }
+
+        const { Login, Password } = this.User;
+
+       
+        this.User = await db.getUserByLogin (Login);
 
         if (!this.User)
         {
@@ -83,7 +98,7 @@ export default class Authorizer
         // ToDo:
         // if (!user.Enabled)
 
-        const receivedPwd = encrypt (pwd);
+        const receivedPwd = encrypt (Password);
 
         if (receivedPwd != this.User.Password)
         {

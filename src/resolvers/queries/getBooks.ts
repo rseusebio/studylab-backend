@@ -1,5 +1,5 @@
 import InternalContext                          from "../../classes/InternalContext";
-import { GetBooksResponse, GetBooksRequest }    from "../../classes/queries/GetBooksResponse";
+import { GetBooksResponse, GetBooksRequest }    from "../../classes/queries/GetBooks";
 
 const getBooks = async (_, args, context) =>
 {

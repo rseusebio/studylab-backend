@@ -1,6 +1,5 @@
-import { FileUpload, processRequest }               from "graphql-upload";
-import BookUploadResponse               from "../../classes/mutations/BookUploadResponse";
-import fs, { WriteStream }          from 'fs';
+import { FileUpload, }              from "graphql-upload";
+import fs                           from 'fs';
 import { PDFDocument }              from 'pdf-lib';
 import path                         from 'path';
 import { v4 as uuidv4 }             from 'uuid';
@@ -8,16 +7,18 @@ import util                         from 'util';
 import stream                       from "stream";
 import IgnitionDb                   from "../../datasources/IgnitionDb";
 import { BookInformation, 
-         BookProcessResponse }      from "../../classes/mutations/BookUpload";
-import InternalContext from "../../classes/InternalContext";
+         BookProcessResponse,
+         BookUploadResponse }       from "../../classes/mutations/BookUpload";
+import InternalContext              from "../../classes/InternalContext";
 
 const pipelinePromise = util.promisify (stream.pipeline);
 
 // Create tmp PDF file from args' read stream
 const createStorageEnvironment = (): BookInformation =>
 {
-    const tmpPath    =  path.join (path.resolve(__dirname), "./tmp/");
-    const bookID     =  uuidv4 ();
+    const baseDirectory = path.dirname (path.dirname (__dirname))
+    const tmpPath       =  path.join (path.resolve(baseDirectory), "./tmp/");
+    const bookID        =  uuidv4 ();
 
     if (!fs.existsSync (tmpPath))
     {
@@ -75,10 +76,28 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDb: Ignitio
         return response;
     }
 
+    const uploadFailures = new Array<number> ();
+
+    const exceptionDict = {};
+
+    const uploadPromises = new Array<Promise<void>> ();
+
+    const pagesQuantity = bookDocument.getPageCount ();
+
+    let pagesCount = 0;
+
+    // 400KB
+    let bytesLengthLimit = 400000;
+
+    let totalBytesLength = 0;
+
+    // ToDo:
+    // parallelize this whole for
+
     // 3. Separate each page from the book
     // 3.2 Store each one of them
     // 3.3 Delete it after store attempt
-    for (let i = 0; i < bookDocument.getPageCount (); i++)
+    for (let i = 0; i < pagesQuantity; i++)
     {
         try
         {
@@ -96,24 +115,62 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDb: Ignitio
 
             // ToDo:
             // before upload we should compress the file
+            const uploadPromise = bookDb.saveFile (singlePageFilePath, pageData.byteLength)
+                .then((uploaded) => {                    
+                    if (!uploaded) 
+                    {
+                        console.info (`page ${i}'s upload FAILED.`);
 
-            const result = await bookDb.saveFile (singlePageFilePath);
+                        uploadFailures.push (i);
+                    }
+                });
+            
+            uploadPromises.push (uploadPromise);
 
-            if (!result)
+            if (i == pagesQuantity - 1)
             {
-                response.Error = `FAILED_TO_UPLOAD_PAGE ${i++}`;
-
-                return response;
+                continue;
             }
 
-            fs.unlinkSync (singlePageFilePath);
+            pagesCount++;
+
+            totalBytesLength += pageData.byteLength;
+
+            if (totalBytesLength >= bytesLengthLimit)
+            {
+                console.info (`Waiting for ${pagesCount} to upload ${totalBytesLength / 1000} KB.`);
+
+                await Promise.all (uploadPromises);
+
+                pagesCount = 0;
+
+                totalBytesLength = 0;
+
+                console.info (`going to the next promise ${i + 1}`);
+            }     
         }
         catch (err)
         {
             response.Error = "UPLOAD_TO_DB_ERROR";
 
-            return response;
+            console.info ("exception: ", err);
         }
+    }
+
+    await Promise.all (uploadPromises);
+
+
+    // ToDo:
+    // Add retry for failed pages
+
+    if (uploadFailures.length > 0)
+    {
+        console.info ("failures: ", uploadFailures);
+    }
+
+    if (exceptionDict)
+    {
+        console.info ("exceptionDict: ", exceptionDict);
     }
 
     response.Uploaded = true;
@@ -125,10 +182,6 @@ const processAndUploadBook =  async  (bookInfo: BookInformation, bookDb: Ignitio
 const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
 
     const { authorizer, dataSources } = (context as InternalContext);
-
-    // maybe we should use moment.js
-    // to get timezone
-    const uploadDate = new Date ();
 
     let response = new BookUploadResponse ("", false, -1, "", "");
 
@@ -143,6 +196,8 @@ const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
         return response;
     } 
 
+    // console.info ("authorized: ", authorizer.userLogin);
+
     // ToDo:
     // check if the system has memory enough
     // to store the file locally
@@ -151,6 +206,8 @@ const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
     if (!loadedFile) 
     {
         response.Error = "Empty file";
+
+        response.finalize ();
 
         return response;
     }
@@ -161,6 +218,8 @@ const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
     if (loadedFile.mimetype != "application/pdf")
     {
         response.Error = "INVALID_FILE_TYPE: " + loadedFile.mimetype;
+
+        response.finalize ();
 
         return response;
     }
@@ -175,22 +234,23 @@ const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
     // 3. Saving the file bytes on a local PDF file.
     await pipelinePromise (readStream, bookInfo.writeStream);
 
-    response.Uploaded = true;
-
     response.Size = readStream.bytesRead;
 
-    if (!dataSources.ignitionDb.insertBookRecord (authorizer.userLogin, bookInfo.ID,loadedFile.filename, uploadDate))
+    if (!dataSources.ignitionDb.insertBookRecord (authorizer.userLogin, bookInfo.ID, loadedFile.filename, response.StartDate))
     {
         response.Uploaded = false;
+
         response.Error    = "FAILED_TO_INSERT_RECORD";
+
+        response.finalize ();
 
         return response;
     }
-
+    
+    response.Uploaded = true;
+    
     //4. Try to upload the book
     const uploadResponse = await processAndUploadBook (bookInfo, dataSources.ignitionDb);
-
-    deleteFiles (bookInfo);
 
     response.Uploaded = uploadResponse.Uploaded;
     response.Error    = uploadResponse.Error;
@@ -202,6 +262,10 @@ const bookUpload = async (_, { file}, context): Promise<BookUploadResponse> => {
         // how ?
         // why should it fail ?
     }
+
+    deleteFiles (bookInfo);
+
+    response.finalize ();
 
     return response;
 }
