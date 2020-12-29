@@ -1,143 +1,145 @@
-import { gql } from 'apollo-server'
+import { gql } from 'apollo-server';
 
-const USER = `
-type User{
-    id:       ID
-    Name:     String
-    Password: String
-    Enabled:  String
-}`;
-
-const BOOK = `
-type Book{
-    id:       ID!
-    Title:    String!
-    Author:   Author
-    Category: Category
-}`;
-
-const AUTHOR = `
-type Author
+//#region ============= OBJECT DEFITIONS    ============
+const User = `
+type User
 {
-    id:   ID!
-    Name: String!
+    id:             ID!
+    username:       String!
+    email:          String!
+    emailStatus:    Int
+    accountStatus:  Int
+    creationDate:   String
 }`;
 
-const CATEGORY = `
-type Category{
-    id:   ID!
-    Name: String!
-}`;
-
-const PAGE = `
-type Page {
-    id:       ID!
-    Number:   Int!
-    Book:     Book!
-    Enabled:  Boolean!
-}`;
-
-const MARKUP = `
-type MarkUp {
-    id:         ID!
-    Page:       Page!
-    Height:     Float!
-    Width:      Float!
-    X:          Float!
-    Y:          Float!
-    PageHeight: Float!
-    PageWidth:  Float!
-}`;
-
-const LoginResponse = `
-type LoginResponse
+const BookType = `
+enum BookType
 {
-    Error:       String
-    Authorized:  Boolean!
-    ElapsedTime: Float
+    PDF
 }`;
 
-const BookRecord = `
-type BookRecord 
+const Book = `
+type Book
 {
-    Id:         String
-    Title:      String
-    UploadDate: String
+    id:              ID!
+    userId:          ID!
+    title:           String!
+    type:            BookType!
+    size:            Float
+    uploadDate:      String!
+    coverPageLink:   String
 }`;
 
-const BookCoverRecord = `
-type BookCoverRecord 
+const Page = `
+type Page 
 {
-    Id:         String
-    Data:      String
+    id:           ID!
+    number:       Int!
+    bookId:       ID!
+    isEnabled:    Boolean!
 }`;
 
-
-const BooksResponse = ` 
-type BooksResponse
+const Coordinate = `
+type Coordinate
 {
-    Authorized: Boolean
-    Error:      String
-    Books:      [BookRecord]
+    x:  Float!
+    y:  Float!
 }`;
 
-const BookCoversResponse = ` 
-
-type BookCoversResponse
+const Highlight = `
+type Highlight 
 {
-    Authorized:   Boolean
-    Error:        String
-    BookCovers:   [BookCoverRecord]
-    Failures:      [String]
-    ElapsedTime:  Float
-
+    id:          ID!
+    pageID:      ID!
+    height:      Float!
+    width:       Float!
+    coords:      Coordinate!
+    pageHeight:  Float!
+    pageWidth:   Float!
 }`;
+
+const BookOrder = `
+enum BookOrder
+{
+    ASC, 
+    DESC
+}`;
+
+const ObjectDefinitions = User + BookType + Book + Page + Coordinate + Highlight + BookOrder;
+//#endregion
+
+//#region ============= QUERY RESPONSES     ============
+const ListBooksResponse = ` 
+type ListBooksResponse
+{
+    authorized:     Boolean
+    succeeded:      Boolean
+    error:          String
+    elapsedTime:    Float
+    
+    books:          [Book]
+}`;
+
+const QueryResponses = ListBooksResponse;
+//#endregion
+
+//#region ============= MUTATION RESPONSES  ============
+const SignInResponse = `
+type SignInResponse
+{
+    succeeded:    Boolean!
+    statusCode:   Int!
+    user:         User
+    elapsedTime:  Float
+}`;
+
+const LogResponse = `
+type LogResponse
+{   
+    statusCode:  String
+    elapsedTime: Float
+}`;
+
+
+const UploadBookResponse = `
+type UploadBookResponse 
+{
+    authorized:    Boolean
+    succeeded:     Boolean
+    error:         String
+    elapsedTime:   Float
+    
+    book:          Book
+}`;
+
+const MutationResponses = SignInResponse + LogResponse + UploadBookResponse;
+//#endregion
 
 const Query = `
 type Query 
 {
-    healthCheck: LoginResponse!
+    listBooks( limit: Int, order: BookOrder ): ListBooksResponse!
 
-    getBooks (limit: Int): BooksResponse!
-
-    getBookCovers (BookIds: [String]): BookCoversResponse
-
-    bookInfo: Boolean
     page: Boolean
+
     smallPages: Boolean
+
     pageEditions: Boolean
 }`;
 
-const BookUploadResponse = `
-type UploadResponse 
-{
-    FileName:    String
-    Uploaded:    Boolean
-    Size:        Float
-    Type:        String
-    Enconding:   String
-
-    Authorized:  Boolean
-    Error:       String
-    ElapsedTime: Float
-}`;
-
-//#region  Mutation Definitions
-const UserCreationResponse = `
-type UserCreationResponse
-{
-    Success: Boolean!
-    Error:   String
-}`;
-//#endregion
-
-
 const Mutation = `
-type Mutation {
-    bookUpload (file: Upload!): UploadResponse!
-    createUser (login: String!, password: String!): UserCreationResponse!
-    
+type Mutation 
+{
+    signIn( username: String!, email: String!, password: String! ): SignInResponse!
+
+    logIn: LogResponse!
+
+    logOut: LogResponse!
+
     disableUser:  Boolean
+
+    uploadBook( file: Upload! ): UploadBookResponse!
+    
     disablePages: Boolean
     setBookCover: Boolean
     editPage:     Boolean
@@ -146,27 +148,15 @@ type Mutation {
 
 const typeDefs = gql`
 
-    ${USER}
-    ${BOOK}
-    ${AUTHOR}
-    ${CATEGORY}
-    ${PAGE}
-    ${MARKUP}
-    ${LoginResponse}
+    ${ObjectDefinitions}
 
-    ${BookRecord}
-    ${BooksResponse}
+    ${QueryResponses}
 
     ${Query}
 
-    ${BookCoversResponse}
-
-    ${BookUploadResponse}
-    ${UserCreationResponse}
-
-    ${BookCoverRecord}
+    ${MutationResponses}
 
     ${Mutation}
 `;
 
-export default typeDefs;
+ export default typeDefs;

@@ -1,7 +1,7 @@
 import DataSources from "../datasources/DataSources";
 import Authorizer  from "./Authorizer";
 
-class InternalContext 
+interface InternalContext 
 {
     dataSources: DataSources
     authorizer:  Authorizer

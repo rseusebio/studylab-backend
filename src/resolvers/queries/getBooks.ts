@@ -7,16 +7,16 @@ const getBooks = async (_, args, context) =>
 
     const { dataSources, authorizer } = (context as InternalContext);
     
-    await authorizer.validateUser (dataSources.ignitionDb);
+    // await authorizer.validateUser(dataSources.ignitionDb);
 
-    const response = new GetBooksResponse (authorizer.Authorized, authorizer.Error);
+    const response = new GetBooksResponse( /*authorizer.authorized*/ true, /*authorizer.error*/ "");
 
-    if (!authorizer.Authorized)
-    {
-         return response;
-    }
+    // if (!authorizer.authorized)
+    // {
+    //      return response;
+    // }
 
-    response.Books = await dataSources.ignitionDb.getUserBooks (authorizer.userLogin, limit ? 10 : limit);
+    response.Books = await dataSources.ignitionDb.getUserBooks( authorizer.username, limit ? 10 : limit);
 
     return response;
 }

@@ -1,4 +1,4 @@
-import { BookRecord } from "../mutations/BookUpload";
+import { BookRecord } from "../mutations/uploadBook/UploadBookResponse";
 
 interface GetBooksRequest
 {

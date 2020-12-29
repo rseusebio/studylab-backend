@@ -35,17 +35,17 @@ const getBookCovers = async (_, args, context): Promise<GetBookCoversResponse> =
 
     const { dataSources, authorizer } = (context as InternalContext);
     
-    await authorizer.validateUser (dataSources.ignitionDb);
+    // await authorizer.validateUser(dataSources.ignitionDb);
 
-    response.Authorized = authorizer.Authorized;
-    response.Error      = authorizer.Error;
+    // response.Authorized = authorizer.authorized;
+    // // response.Error      = authorizer.error;
     
-    if (!authorizer.Authorized)
-    {
-        response.finalize ();
+    // if (!authorizer.authorized)
+    // {
+    //     response.finalize ();
 
-        return response;
-    }
+    //     return response;
+    // }
 
     if (!BookIds || BookIds.length <= 0)
     {
