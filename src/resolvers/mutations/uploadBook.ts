@@ -41,16 +41,11 @@ const createStorageEnv = ( ) =>
     };
 }
 
-const deleteFiles = (bookInfo: any) => 
+const removeWorkingFolder = ( bookDir: string ) => 
 {
-    if (fs.existsSync (bookInfo.filePath))
+    if ( fs.existsSync( bookDir ) )
     {
-        fs.unlinkSync (bookInfo.filePath);
-    }
-    
-    if (fs.existsSync (bookInfo.directoryPath))
-    {
-        fs.rmdirSync (bookInfo.directoryPath, {recursive: true});
+        fs.rmdirSync( bookDir, {recursive: true} );
     }
 }
 
@@ -145,7 +140,7 @@ const uploadBook = async (_: any, { file }: FileUploadArgs, { authorizer, dataSo
         return response;
     }
 
-    response = new UploadBookResponse( filename, false, undefined, mimetype, encoding );
+    response = new UploadBookResponse( filename, undefined, mimetype, encoding );
 
     // 1. Check if received file type is PDF or Not.
     if ( mimetype != "application/pdf" )
@@ -170,22 +165,16 @@ const uploadBook = async (_: any, { file }: FileUploadArgs, { authorizer, dataSo
 
     
     //4. Try to upload the book
-    const uploadResponse = await splitAndUpload( bookInfo, dataSources.ignitionDb );
+    const uploadRes = await splitAndUpload( authorizer.username, bookId, bookPath, filename, dataSources.ignitionDb );
 
-    response.uploaded = uploadResponse.Uploaded;
-    // response.Error    = uploadResponse.Error;
-
-    if (!uploadResponse.Uploaded)
+    if ( uploadRes != StatusCode.SUCCEEDED )
     {
-        ignitionDb.removeBookRecord (bookInfo.ID);
-        // if failed we should retry again
-        // how ?
-        // why should it fail ?
+        // Do Something to remove everything we uploaded
     }
 
-    deleteFiles (bookInfo);
+    removeWorkingFolder( bookDir );
 
-    response.finalize ();
+    response.finalize( uploadRes );
 
     return response;
 }

@@ -1,9 +1,11 @@
-import      getBooks     from    "./getBooks";
+// import      getBooks     from    "./getBooks";
 
 const Query = {
 
     // get all books information
-    listBooks: getBooks,
+    listBooks: ()=> {
+        return false;
+    },
 
     // // get all book covers to list on a page
     // getBookCovers,

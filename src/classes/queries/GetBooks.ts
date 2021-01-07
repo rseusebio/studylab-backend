@@ -1,26 +1,25 @@
-import { BookRecord } from "../mutations/uploadBook/UploadBookResponse";
 
-interface GetBooksRequest
-{
-    limit: number;
-}
+// interface GetBooksRequest
+// {
+//     limit: number;
+// }
 
-class GetBooksResponse 
-{
-    Books:      Array<BookRecord>
-    Authorized: boolean;
-    Error:      string;
+// class GetBooksResponse 
+// {
+//     Books:      Array<BookRecord>
+//     Authorized: boolean;
+//     Error:      string;
 
-    constructor (auth: boolean = false, err: string = "")
-    {
-        this.Books       = new Array<BookRecord> ();
-        this.Authorized  = auth;
-        this.Error       = "";
-    }
-}
+//     constructor (auth: boolean = false, err: string = "")
+//     {
+//         this.Books       = new Array<BookRecord> ();
+//         this.Authorized  = auth;
+//         this.Error       = "";
+//     }
+// }
 
 
-export {
-    GetBooksRequest, 
-    GetBooksResponse
-}
+// export {
+//     GetBooksRequest, 
+//     GetBooksResponse
+// }

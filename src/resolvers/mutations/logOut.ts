@@ -7,7 +7,7 @@ const logOut = async ( _: any, __: any, { dataSources, authorizer }: InternalCon
 
     const res = new LogResponse( );
 
-    await authorizer.authenticate( dataSources, true );
+    // await authorizer.authenticate( dataSources, true );
 
     res.statusCode  = authorizer.statusCode;
     res.elapsedTime = ( Date.now( ) - startTime ) / 1000;

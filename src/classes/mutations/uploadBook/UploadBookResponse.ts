@@ -1,14 +1,12 @@
-import { WriteStream } from "fs";
 import { StatusCode } from "../../Status";
 
 export default class UploadBookResponse 
 {
     
-    public fileName:        string;
-    public uploaded:        boolean;
+    public filename:        string;
     public size:            number;
     public type:            string;
-    public enconding:       string;
+    public encoding:       string;
 
     public statusCode:      StatusCode;
     public elapsedTime:     number;
@@ -20,15 +18,14 @@ export default class UploadBookResponse
         return this._uploadDate;
     }
 
-    constructor ( name: string = "", uploaded: boolean = false, size: number = 0, type: string = "", encoding: string = "" )
+    constructor ( name: string = "", size: number = 0, type: string = "", encoding: string = "" )
     {
         this._uploadDate  = new Date( );
 
-        this.fileName   = name;
-        this.uploaded   = uploaded;
+        this.filename   = name;
         this.size       = size;
         this.type       = type;
-        this.enconding  = encoding;
+        this.encoding  = encoding;
     }
 
     public finalize( statusCode: StatusCode )

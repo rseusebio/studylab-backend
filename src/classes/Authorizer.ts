@@ -4,10 +4,12 @@ import      UserRecord,
               EmailStatus }              from       "./mutations/signIn/UserRecord";
 import      { StatusCode      }          from       "./Status";
 import      config                       from       "config";
-import      AuthConfig               from       "./config/AuthConfig";
+import      AuthConfig                   from       "./config/AuthConfig";
 import      DataSources                  from       "../datasources/DataSources";
 import      { parseCookie }              from       "../utils/utils";
-import      { decrypt, encrypt }         from       "../utils/cryptography";
+import      { decrypt, 
+              encrypt, 
+              hashMessage }              from       "../utils/cryptography";
 
 export default class Authorizer 
 {
@@ -21,8 +23,6 @@ export default class Authorizer
 
      // An internal private field referencing to the user response;
     private res:    Response;
-
-    private CookieName: string = "studylab"
 
     constructor( cookie: string | undefined, auth: string | undefined, res: Response ) 
     {   
@@ -66,9 +66,11 @@ export default class Authorizer
 
             return false;
         }
+        
+        const { Keys } = config.get<AuthConfig>( "Authentication" );
 
         this.username  = username;
-        this.password  = pwd;
+        this.password  = hashMessage( pwd, Keys.get( "Auth" ).HashKey );
 
         return true;
     }
@@ -93,9 +95,9 @@ export default class Authorizer
             return false;
         }
 
-        const cookieKeys = Keys.get( "Cookie" );
+        const { Secret, HashKey } = Keys.get( "Cookie" );
 
-        const cookie = decrypt( jsonCookie[CookieName], cookieKeys.Secret, cookieKeys.HashKey );
+        const cookie = decrypt( jsonCookie[CookieName], Secret, HashKey );
 
         const [ username, email ] = cookie.split( "::" );
 
@@ -118,14 +120,15 @@ export default class Authorizer
 
     public setCookie( username: string, email: string ) : void
     {
+        const { CookieName }  = config.get<AuthConfig>( "Authentication" );
         // which mechanism checks it?
         const validHours = 24; 
 
         const cookieOpts: CookieOptions = {
             maxAge: validHours * 60 * 60 * 1000 // 24 hours
-        }
+        };
         
-        this.res.cookie( this.CookieName, this.generateCookie( username ?? this.user.username, email ?? this.user.email ), cookieOpts );
+        this.res.cookie( CookieName, this.generateCookie( username , email ), cookieOpts );
     }
 
     public validateUser( ): boolean
@@ -158,60 +161,65 @@ export default class Authorizer
 
         const cookieOpts: CookieOptions = {
             maxAge: validHours * 60 * 60 * 1000 // 24 hours
-        }
+        };
+
+        const { CookieName }  = config.get<AuthConfig>( "Authentication" );
         
-        this.res.cookie( this.CookieName, this.generateCookie( this.user.username, this.user.email ), cookieOpts );
+        this.res.cookie( CookieName, this.generateCookie( this.user.username, this.user.email ), cookieOpts );
 
         return true;
     }
 
-    public async authenticate( { ignitionDb }: DataSources, logOut: boolean = false ): Promise<boolean>
+    public async authenticate( { ignitionDb }: DataSources /*,logOut: boolean = false*/ ): Promise<boolean>
     {
         if( this.cookie && this.cookie.length )
         {
             if( !this.validateCookie( ) )
             {
-                return;
+                return false;
             }
-        }
 
-        if( !this.extractAuth( ) )
-        {
-            return;
-        }
-
-        this.user = await ignitionDb.findUser( this.username );
-
-        if( !this.user )
-        {
-            this.statusCode = StatusCode.USER_DOESNT_EXIST;
-
-            return;
-        }
-
-        if( !this.validateUser( ) )
-        {
-            return;
-        }
-
-        if( logOut )
-        {
-            this.statusCode = StatusCode.SUCCEEDED;
-
-            if( !( await ignitionDb.logOutUser( this.username ) ) )
+            if( !( await ignitionDb.logInUser( this.username ) ) )
             {
-                this.statusCode = StatusCode.LOGOUT_FAILED;
+                this.statusCode = StatusCode.LOG_IN_FAILED;
+
+                return false
             }
 
-            return;
-        }
-
-        if( this.user.isLogged )
-        {
             this.statusCode = StatusCode.SUCCEEDED;
 
             return true;
         }
+        else if( !this.extractAuth( ) )
+        {
+            return false;
+        }
+
+        this.user = await ignitionDb.verifyCrendentials( this.username, this.password );
+
+        if( !this.user )
+        {
+            this.statusCode = StatusCode.INVALID_CREDENTIAL;
+
+            return false;
+        }
+
+        if( !this.validateUser( ) )
+        {
+            return false;
+        }
+
+        // if( logOut )
+        // {
+        //     this.statusCode = StatusCode.SUCCEEDED;
+
+        //     if( !( await ignitionDb.logOutUser( this.username ) ) )
+        //     {
+        //         this.statusCode = StatusCode.LOGOUT_FAILED;
+        //     }
+
+        //     return;
+        // }
 
         if( !( await ignitionDb.logInUser( this.username ) ) )
         {
@@ -219,6 +227,8 @@ export default class Authorizer
 
             return;
         }
+
+        this.setCookie( this.user.username, this.user.email );
 
         this.statusCode = StatusCode.SUCCEEDED;
 

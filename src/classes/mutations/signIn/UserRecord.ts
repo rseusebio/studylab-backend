@@ -21,8 +21,8 @@ export default class UserRecord
     password:       string;
 
     _creationDate:   Date;
-    lastUpdateDate: Date;
-    lastLoginDate:  Date;
+    lastUpdateDate:  Date;
+    lastLoginDate:   Date;
 
     isLogged:       boolean;
     enabled:        boolean;
@@ -58,8 +58,8 @@ export default class UserRecord
         this.password       =    pwd;
         
         this._creationDate   =    now;
-        this.lastLoginDate  =    now;
-        this.lastLoginDate  =    now;
+        this.lastLoginDate   =    now;
+        this.lastUpdateDate  =    now;
 
         this.isLogged       =    true;
         this.enabled        =    true;

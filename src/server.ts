@@ -1,11 +1,11 @@
-import express                      from "express";
-import { ApolloServer }             from "apollo-server-express";
-import path                         from "path";
-import typeDefs                     from "./schema";
-import context                      from "./context";
-import dataSources                  from "./dataSources";
-import Query                        from "./resolvers/queries";
-import Mutation                     from "./resolvers/mutations";
+import express                      from    "express";
+import { ApolloServer }             from    "apollo-server-express";
+import path                         from    "path";
+import typeDefs                     from    "./schema";
+import context                      from    "./context";
+import dataSources                  from    "./dataSources";
+import Query                        from    "./resolvers/queries";
+import Mutation                     from    "./resolvers/mutations";
 
 const app = express( );
 

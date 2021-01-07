@@ -1,7 +1,32 @@
 import  InternalContext              from   "../../classes/InternalContext";
 import  { SignInArgs, 
           SignInResponse }           from   "../../classes/mutations/signIn";
-import { StatusCode }                from   "../../classes/Status";
+import  { StatusCode }               from   "../../classes/Status";
+import  { validate }                 from   "email-validator";
+import  config                       from   "config";
+import  { hashMessage }              from   "../../utils/cryptography";
+import  AuthConfig                   from   "../../classes/config/AuthConfig";
+
+const validatePwd = ( pwd: string ): boolean => { 
+    const re1 = new RegExp( "[\$@!&\*#%+-]" );
+    const re2 = new RegExp( "[A-Z]" );
+    const re3 = new RegExp( "[a-z]");
+
+    if( pwd.length < 6 )
+    {
+        return false;
+    }
+    else if( !re1.test( pwd ) || 
+             !re2.test( pwd ) ||
+             !re3.test( pwd ) )
+    {
+        return false;
+    }
+    else 
+    {
+       return true;
+    }
+};
 
 const signIn = async ( _: any, { username, email, password }: SignInArgs , { dataSources, authorizer }: InternalContext ): Promise<SignInResponse> => 
 {
@@ -9,13 +34,14 @@ const signIn = async ( _: any, { username, email, password }: SignInArgs , { dat
 
     const { ignitionDb } = dataSources;
 
-    const res = new SignInResponse();
+    const res = new SignInResponse( );
 
     // ToDo:
+    // DO I REALLY NEED TO DO THIS ?
     // a. Login and Password should be encrypted 
     // b. decrypt them
 
-    // 0. Check if all fields has been filled
+    //#region VALIDATING ARGUMENTS
     if ( !username || !password || !email )
     {
         res.statusCode  = StatusCode.INVALID_INFORMATION;
@@ -23,21 +49,55 @@ const signIn = async ( _: any, { username, email, password }: SignInArgs , { dat
 
         return res;
     }
-
-    // 1. Check if login already exists
-    const user = await ignitionDb.findUser( username, email );
-
-    if (user)
+    else if ( username.length < 4 )
     {
-        res.statusCode  = StatusCode.USER_ALREADY_EXISTS;
+        res.statusCode  = StatusCode.USERNAME_TOO_SHORT;
         res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
 
         return res;
     }
+    else if( !validate( email ) )
+    {
+        res.statusCode  = StatusCode.INVALID_EMAIL;
+        res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
 
-    // 2. Try to insert
-    // password must be a hash already
-    res.user = await ignitionDb.insertNewUser( username, email, password );
+        return res;
+    }
+    else if( !validatePwd( password ) )
+    {
+        res.statusCode  = StatusCode.INVALID_PASSWORD;
+        res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
+
+        return res;
+    }
+    //#endregion
+
+    //#region CHECKING IF USERNAME OR EMAIL ALREADY EXISTS
+    const user = await ignitionDb.findUser( username, email );
+
+    if ( user )
+    {
+        if ( user.username == username )
+        {
+            res.statusCode  = StatusCode.USERNAME_ALREADY_EXISTS;
+            res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
+
+            return res;
+        }
+        else
+        {
+            res.statusCode  = StatusCode.EMAIL_ALREADY_USED;
+            res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
+
+            return res;
+        }
+    }
+    //#endregion
+    
+    //#region CREATING THE NEW USER
+    const { Keys } = config.get<AuthConfig>( "Authentication" );
+    
+    res.user = await ignitionDb.insertNewUser( username, email, hashMessage( password, Keys.get("Auth").HashKey) );
     
     if ( !res.user )
     {
@@ -47,11 +107,13 @@ const signIn = async ( _: any, { username, email, password }: SignInArgs , { dat
         return res;
     }
 
-    res.succeeded       =   true;
     res.statusCode      =   StatusCode.SUCCEEDED;
     res.elapsedTime     =   ( Date.now( ) - startTime ) / 1000;
+
+    authorizer.setCookie( username, email );
     
-    return res;   
+    return res;
+    //#endregion   
 }
 
 export default signIn;

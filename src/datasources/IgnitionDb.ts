@@ -120,9 +120,23 @@ class IgnitionDb extends DataSource
         return user;
     }
 
+    async verifyCrendentials( username: string, password: string ): Promise<UserRecord | null>
+    {        
+        await this.usersCollection();
+
+        if( !this.usersColl )
+        {
+            return;
+        }
+
+        const user = await this.usersColl.findOne<UserRecord>( { username, password } );
+  
+        return user;
+    }
+
     async insertNewUser( username:string, email: string,  pwd: string ): Promise<UserRecord | null>
     {        
-        if ( !await this.connect() )
+        if ( !( await this.connect( ) ) )
         {
             this.statusCode = StatusCode.DATABASE_NOT_CONNECTED;
 
@@ -276,32 +290,6 @@ class IgnitionDb extends DataSource
         }
     }
 
-    async insertBookRecord( login: string, bookId: string, fileName: string, uploadDate: Date ): Promise<boolean>
-    {
-        if (await this.connect () == false)
-        {
-            return false;
-        }
-
-        const { DbName } = this.mongoConfig;
-
-        const db = this.client.db (DbName);
-
-        const coll = db.collection<BookRecord> ("Books");
-
-        const title = fileName.endsWith ('.pdf') ? fileName.replace (".pdf", "") : fileName;
-
-        const book = new BookRecord (login, bookId, title, uploadDate);
-        
-        const { insertedCount } = await coll.insertOne (book);
-
-        if (insertedCount == 1)
-        {
-            return true
-        }
-        
-        return false;
-    }
 
     async removeBookRecord( bookId: string ): Promise<boolean>
     {

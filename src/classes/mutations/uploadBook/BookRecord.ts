@@ -13,7 +13,7 @@ export default class BookRecord
     constructor( username: string, bookId: string, title: string, totalPages: number, byteLength: number )
     {
         this._id            =    new ObjectId( );
-
+        this.byteLength     =    byteLength;
         this.username       =    username;
         this.bookId         =    bookId;
         this.title          =    title;

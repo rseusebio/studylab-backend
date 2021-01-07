@@ -104,12 +104,15 @@ type LogResponse
 const UploadBookResponse = `
 type UploadBookResponse 
 {
-    authorized:    Boolean
-    succeeded:     Boolean
-    error:         String
+    filename:      String
+    size:          Float
+    type:          String
+    encoding:      String
+
+    statusCode:    Int
     elapsedTime:   Float
-    
-    book:          Book
+
+    uploadDate:    String
 }`;
 
 const MutationResponses = SignInResponse + LogResponse + UploadBookResponse;
