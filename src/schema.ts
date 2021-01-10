@@ -87,7 +87,6 @@ const QueryResponses = ListBooksResponse;
 const SignInResponse = `
 type SignInResponse
 {
-    succeeded:    Boolean!
     statusCode:   Int!
     user:         User
     elapsedTime:  Float

@@ -1,5 +1,5 @@
 {
-  "name": "studylab-backend",
+  "name": "ebookhub-backend",
   "version": "1.0.0",
   "description": "The backend and core logic for this little project called studylab",
   "main": "app.ts",
