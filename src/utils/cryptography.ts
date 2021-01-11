@@ -21,7 +21,11 @@ const encrypt = ( msg: string, secret: string, hashSecret: string  ): string => 
 
     // return CryptoJS.enc.Base64.stringify (encryptedMsg.ciphertext);
 
-    return encryptedMsg.toString()
+    const result = encryptedMsg.toString( );
+
+    console.info( "encrypted message: ", result );
+
+    return result;
 }
 
 const decrypt = ( encryptedMsg: string, secret: string, hashSecret: string ): string => {
@@ -59,15 +63,20 @@ const test = ()=>{
 
     const { Keys } =  config.get<AuthConfig>( "Authentication" );
 
-    const { Secret, HashKey } = Keys.get( "Auth" );
+    const { Secret, HashKey } = Keys.get( "Cookie" );
 
     const var1 = encrypt( "test", Secret, HashKey );
     const var2 = encrypt( "test", Secret, HashKey );
     const var3 = encrypt( "test", Secret, HashKey );
 
+    const secretKey = "MaIeti0rma8PzhuQ4O5UVHrYVk+9R2o0VSV5jPnO5enh6xQ0tnrOmSj1EzUclV0EDiayMdSwxUtQSNdY/Uyc6w==";
+
 
     console.info (var1, var2, var3);
-    console.info( decrypt( var1, Secret, HashKey ), decrypt( var1, Secret, HashKey ), decrypt( var1, Secret, HashKey ) );
+    console.info( decrypt( var1, Secret, HashKey ), 
+                  decrypt( var1, Secret, HashKey ), 
+                  decrypt( var1, Secret, HashKey ), 
+                  decrypt( secretKey, Secret, HashKey ) );
 
     if(var1 !=  var2 || var1 != var3)
     {
@@ -79,6 +88,8 @@ const test = ()=>{
     }
 }
 
+test();
+
 const test2 = () => {
     const pwd = "mypassword123";
     const pwd2 = "123anotherpassword";
@@ -86,7 +97,7 @@ const test2 = () => {
 
     const { Keys } =  config.get<AuthConfig>( "Authentication" );
 
-    const { Secret } = Keys.get( "Auth" ); 
+    const { Secret } = Keys.get( "Cookie" ); 
 
     for(let i = 0; i < 5; i++ )
     {

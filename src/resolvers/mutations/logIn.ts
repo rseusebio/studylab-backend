@@ -1,18 +1,15 @@
-import InternalContext      from    "../../classes/InternalContext";
-import LogResponse          from    "../../classes/mutations/logIn/LogResponse";
+import      InternalContext      from    "../../classes/InternalContext";
+import      LogInResponse        from    "../../classes/mutations/logIn/LogInResponse";
 
-
-//this should be a mutation
-const logIn = async ( _: any, __: any, { dataSources, authorizer }: InternalContext ) => {
+const logIn = async ( _: any, __: any, { dataSources:{ ignitionDb }, authorizer }: InternalContext ) => {
 
     const startTime = Date.now( );
 
-    const res = new LogResponse( );
+    const res = new LogInResponse( );
 
-    await authorizer.authenticate( dataSources );
-
-    res.statusCode   =  authorizer.statusCode;
-    res.elapsedTime  =  ( Date.now( ) - startTime ) / 1000;
+    res.user          =  await authorizer.logIn( { ignitionDb } );
+    res.statusCode    =  authorizer.statusCode;
+    res.elapsedTime   =  ( Date.now( ) - startTime ) / 1000;
 
     return res;
 }

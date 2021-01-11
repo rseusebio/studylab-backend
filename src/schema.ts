@@ -92,10 +92,11 @@ type SignInResponse
     elapsedTime:  Float
 }`;
 
-const LogResponse = `
-type LogResponse
+const LogInResponse = `
+type LogInResponse
 {   
     statusCode:  String
+    user:        User
     elapsedTime: Float
 }`;
 
@@ -114,7 +115,7 @@ type UploadBookResponse
     uploadDate:    String
 }`;
 
-const MutationResponses = SignInResponse + LogResponse + UploadBookResponse;
+const MutationResponses = SignInResponse + LogInResponse + UploadBookResponse;
 //#endregion
 
 const Query = `
@@ -134,9 +135,9 @@ type Mutation
 {
     signIn( username: String!, email: String!, password: String! ): SignInResponse!
 
-    logIn: LogResponse!
+    logIn: LogInResponse!
 
-    logOut: LogResponse!
+    logOut: LogInResponse!
 
     disableUser:  Boolean
 

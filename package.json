@@ -22,6 +22,7 @@
     "@types/mongodb": "^3.6.3",
     "@types/mongoose": "^5.10.3",
     "@types/node": "^14.14.14",
+    "@types/node-cache": "^4.2.5",
     "@types/uuid": "^8.3.0",
     "typescript": "^3.9.7"
   },
@@ -38,6 +39,7 @@
     "graphql-upload": "^10.0.0",
     "mongodb": "^3.6.3",
     "mongoose": "^5.11.8",
+    "node-cache": "^5.1.2",
     "pdf-lib": "^1.13.0",
     "uuid": "^8.3.2"
   }

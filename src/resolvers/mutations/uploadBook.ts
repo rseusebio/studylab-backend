@@ -122,7 +122,7 @@ const uploadBook = async (_: any, { file }: FileUploadArgs, { authorizer, dataSo
 
     let response = new UploadBookResponse( );
 
-    authorizer.authenticate( dataSources );
+    // authorizer.authenticate( dataSources );
 
     if( authorizer.statusCode != 0 )
     {

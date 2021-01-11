@@ -10,6 +10,7 @@ import      { parseCookie }              from       "../utils/utils";
 import      { decrypt, 
               encrypt, 
               hashMessage }              from       "../utils/cryptography";
+import      cache                        from       "../cache";
 
 export default class Authorizer 
 {
@@ -19,6 +20,7 @@ export default class Authorizer
     private cookie:     string | undefined;
     private auth:       string | undefined;
     public  username:   string | undefined;
+    public  email:      string | undefined;   
     private password:   string | undefined;
 
      // An internal private field referencing to the user response;
@@ -86,7 +88,7 @@ export default class Authorizer
             return false;
         }
 
-        const jsonCookie = parseCookie( this.cookie );
+        const jsonCookie = parseCookie( decodeURIComponent( this.cookie ) );
 
         if( !jsonCookie || !( CookieName in jsonCookie ) )
         {
@@ -97,12 +99,33 @@ export default class Authorizer
 
         const { Secret, HashKey } = Keys.get( "Cookie" );
 
+        console.info( jsonCookie );
+
         const cookie = decrypt( jsonCookie[CookieName], Secret, HashKey );
+
+        console.info( "decrypted: ", cookie );
+
+        if( !cookie )
+        {
+            this.statusCode = StatusCode.INVALID_COOKIE;
+
+            return;
+        }
 
         const [ username, email ] = cookie.split( "::" );
 
+        console.info( "decrypted cookie: ", cookie, username, email );
+
+        if( !username || !email )
+        {
+            this.statusCode = StatusCode.INVALID_COOKIE;
+
+            return;
+        }
+
         this.statusCode =   StatusCode.SUCCEEDED;
-        this.user       =   new UserRecord( username, email, "" );
+        this.username   =   username;
+        this.email      =   email;  
         
         return true;
     }
@@ -118,120 +141,182 @@ export default class Authorizer
         return encrypt( cookie, cookieKeys.Secret, cookieKeys.HashKey );
     }
 
-    public setCookie( username: string, email: string ) : void
+    public setCookie( user: UserRecord ) : void
     {
+        const { username, email } = user;
+
         const { CookieName }  = config.get<AuthConfig>( "Authentication" );
-        // which mechanism checks it?
-        const validHours = 24; 
 
         const cookieOpts: CookieOptions = {
-            maxAge: validHours * 60 * 60 * 1000 // 24 hours
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
         };
         
         this.res.cookie( CookieName, this.generateCookie( username , email ), cookieOpts );
+
+        this.cacheUser( user );
     }
 
-    public validateUser( ): boolean
+    public validateUser( user: UserRecord ): boolean
     {
-        if ( this.user.accountStatus != AccountStatus.Active )
+        if ( user.accountStatus != AccountStatus.Active )
         {
             this.statusCode = StatusCode.USER_DISABLED;
 
             return;
         }
 
-        if ( this.user.emailStatus != EmailStatus.Verified && this.user.accountDays > 1 )
+        if ( user.emailStatus != EmailStatus.Verified && user.accountDays > 1 )
         {
             this.statusCode = StatusCode.EMAIL_NOT_VERIFIED;
 
             return;
         }
 
-        if ( this.password != this.user.password )
-        {
-            this.statusCode = StatusCode.ACCESS_DENIED;
-
-            return;
-        }
-
         this.statusCode = StatusCode.SUCCEEDED;
-
-        // which mechanism checks it?
-        const validHours = 24; 
-
-        const cookieOpts: CookieOptions = {
-            maxAge: validHours * 60 * 60 * 1000 // 24 hours
-        };
-
-        const { CookieName }  = config.get<AuthConfig>( "Authentication" );
-        
-        this.res.cookie( CookieName, this.generateCookie( this.user.username, this.user.email ), cookieOpts );
 
         return true;
     }
 
-    public async authenticate( { ignitionDb }: DataSources /*,logOut: boolean = false*/ ): Promise<boolean>
+    // public async authenticate( { ignitionDb }: DataSources /*,logOut: boolean = false*/ ): Promise<boolean>
+    // {
+    //     if( this.cookie && this.cookie.length )
+    //     {
+    //         if( !this.validateCookie( ) )
+    //         {
+    //             return false;
+    //         }
+
+    //         if( !( await ignitionDb.logInUser( this.username ) ) )
+    //         {
+    //             this.statusCode = StatusCode.LOG_IN_FAILED;
+
+    //             return false
+    //         }
+
+    //         this.statusCode = StatusCode.SUCCEEDED;
+
+    //         return true;
+    //     }
+    //     else if( !this.extractAuth( ) )
+    //     {
+    //         return false;
+    //     }
+
+    //     this.user = await ignitionDb.verifyCrendentials( this.username, this.password );
+
+    //     if( !this.user )
+    //     {
+    //         this.statusCode = StatusCode.INVALID_CREDENTIAL;
+
+    //         return false;
+    //     }
+
+    //     if( !this.validateUser( this.user ) )
+    //     {
+    //         return false;
+    //     }
+
+    //     if( !( await ignitionDb.logInUser( this.username ) ) )
+    //     {
+    //         this.statusCode = StatusCode.LOG_IN_FAILED;
+
+    //         return;
+    //     }
+
+    //     this.setCookie( this.user.username, this.user.email );
+
+    //     this.statusCode = StatusCode.SUCCEEDED;
+
+    //     return true;
+    // }
+
+    public cacheUser( user: UserRecord ): boolean
     {
-        if( this.cookie && this.cookie.length )
+        const { username, email } = user;
+
+        const key = `${username}::${email}`;
+
+        const res = cache.set<UserRecord>( key, user );
+
+        console.info( "cached: ", res, cache.keys( ), cache.has( key ) );
+        
+        return res;
+    }
+
+    public retreiveUser( username: string, email: string ): UserRecord
+    {
+        const key = `${username}::${email}`;
+
+        console.info( cache.keys(), cache.has( key ), username, email );
+
+        if ( !cache.has( key ) )
         {
-            if( !this.validateCookie( ) )
+            return null;
+        } 
+
+        return cache.get<UserRecord>( key );
+    }
+
+    public async logIn( { ignitionDb }: DataSources ): Promise<UserRecord>
+    {
+        let user: UserRecord = null;
+
+        if( this.validateCookie( ) )
+        {
+            console.info( `has cookie` );
+
+            user = this.retreiveUser( this.username, this.email );
+
+            if( !user )
             {
-                return false;
+                console.info( ` there is no cookie in cache. `);
+
+                user = await ignitionDb.findUser( this.username, this.email );
+
+                if( ! this.cacheUser( user ) )
+                {
+                    console.info( `could not insert user in cache. `); 
+                }
             }
 
-            if( !( await ignitionDb.logInUser( this.username ) ) )
+            if( !user )
             {
-                this.statusCode = StatusCode.LOG_IN_FAILED;
+                this.statusCode = StatusCode.USER_DOESNT_EXIST;
 
-                return false
+                return;
             }
 
             this.statusCode = StatusCode.SUCCEEDED;
 
-            return true;
+            return user;
         }
-        else if( !this.extractAuth( ) )
+
+        console.info(` no token`);
+        
+        if( !this.extractAuth( ) )
         {
-            return false;
+            console.info( `no auth `);
+            return;
         }
 
-        this.user = await ignitionDb.verifyCrendentials( this.username, this.password );
+        user = await ignitionDb.verifyCrendentials( this.username, this.password );
 
-        if( !this.user )
+        if( !user )
         {
             this.statusCode = StatusCode.INVALID_CREDENTIAL;
-
-            return false;
-        }
-
-        if( !this.validateUser( ) )
-        {
-            return false;
-        }
-
-        // if( logOut )
-        // {
-        //     this.statusCode = StatusCode.SUCCEEDED;
-
-        //     if( !( await ignitionDb.logOutUser( this.username ) ) )
-        //     {
-        //         this.statusCode = StatusCode.LOGOUT_FAILED;
-        //     }
-
-        //     return;
-        // }
-
-        if( !( await ignitionDb.logInUser( this.username ) ) )
-        {
-            this.statusCode = StatusCode.LOG_IN_FAILED;
 
             return;
         }
 
-        this.setCookie( this.user.username, this.user.email );
+        if( !this.validateUser( user ) )
+        {
+            return;
+        }
 
+        this.setCookie( user );
+    
         this.statusCode = StatusCode.SUCCEEDED;
 
-        return true;
+        return user;
     }
 }

@@ -1,11 +1,11 @@
 import InternalContext from "../../classes/InternalContext";
-import LogResponse from "../../classes/mutations/logIn/LogResponse";
+import LogInResponse from "../../classes/mutations/logIn/LogInResponse";
 
 const logOut = async ( _: any, __: any, { dataSources, authorizer }: InternalContext ) => {
 
     const startTime = Date.now( );
 
-    const res = new LogResponse( );
+    const res = new LogInResponse( );
 
     // await authorizer.authenticate( dataSources, true );
 

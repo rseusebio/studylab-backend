@@ -97,7 +97,7 @@ const signIn = async ( _: any, { username, email, password }: SignInArgs , { dat
     //#region CREATING THE NEW USER
     const { Keys } = config.get<AuthConfig>( "Authentication" );
     
-    res.user = await ignitionDb.insertNewUser( username, email, hashMessage( password, Keys.get("Auth").HashKey) );
+    res.user = await ignitionDb.insertNewUser( username, email, hashMessage( password, Keys.get( "Auth" ).HashKey ) );
     
     if ( !res.user )
     {
@@ -110,7 +110,7 @@ const signIn = async ( _: any, { username, email, password }: SignInArgs , { dat
     res.statusCode      =   StatusCode.SUCCEEDED;
     res.elapsedTime     =   ( Date.now( ) - startTime ) / 1000;
 
-    authorizer.setCookie( username, email );
+    authorizer.setCookie( res.user );
     
     return res;
     //#endregion   
