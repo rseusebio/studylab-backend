@@ -95,7 +95,7 @@ type SignInResponse
 const LogInResponse = `
 type LogInResponse
 {   
-    statusCode:  String
+    statusCode:  Int!
     user:        User
     elapsedTime: Float
 }`;

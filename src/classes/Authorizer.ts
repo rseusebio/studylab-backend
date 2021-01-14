@@ -17,7 +17,7 @@ export default class Authorizer
     public statusCode:  StatusCode;
 
     private user:       UserRecord;
-    private cookie:     string | undefined;
+    private cookie:     string;
     private auth:       string | undefined;
     public  username:   string | undefined;
     public  email:      string | undefined;   
@@ -81,11 +81,11 @@ export default class Authorizer
     {
         const { CookieName, Keys }  = config.get<AuthConfig>( "Authentication" );
 
-        if ( !this.cookie || ( this.cookie as string ).search( CookieName + "=" ) < 0 ) 
+        if ( !this.cookie || this.cookie.search( CookieName + "=" ) < 0 ) 
         {
             this.statusCode = StatusCode.NO_COOKIE_RECEIVED;
 
-            return false;
+            return;
         }
 
         const jsonCookie = parseCookie( decodeURIComponent( this.cookie ) );
@@ -94,16 +94,12 @@ export default class Authorizer
         {
             this.statusCode = StatusCode.NO_COOKIE_RECEIVED;
 
-            return false;
+            return;
         }
 
         const { Secret, HashKey } = Keys.get( "Cookie" );
 
-        console.info( jsonCookie );
-
         const cookie = decrypt( jsonCookie[CookieName], Secret, HashKey );
-
-        console.info( "decrypted: ", cookie );
 
         if( !cookie )
         {
@@ -113,8 +109,6 @@ export default class Authorizer
         }
 
         const [ username, email ] = cookie.split( "::" );
-
-        console.info( "decrypted cookie: ", cookie, username, email );
 
         if( !username || !email )
         {
@@ -132,13 +126,13 @@ export default class Authorizer
 
     public generateCookie( username: string, email: string ): string
     {
-        const cookie = `${username}::${email}::${new Date( ).toISOString( )}`;
+        const cookie = `${ username }::${ email }::${ new Date( ).toISOString( ) }`;
 
-        const { CookieName, Keys }  = config.get<AuthConfig>( "Authentication" );
+        const { Keys }  = config.get<AuthConfig>( "Authentication" );
 
-        const cookieKeys = Keys.get( "Cookie" );
+        const { Secret, HashKey } = Keys.get( "Cookie" );
 
-        return encrypt( cookie, cookieKeys.Secret, cookieKeys.HashKey );
+        return encrypt( cookie, Secret, HashKey );
     }
 
     public setCookie( user: UserRecord ) : void
@@ -165,7 +159,7 @@ export default class Authorizer
             return;
         }
 
-        if ( user.emailStatus != EmailStatus.Verified && user.accountDays > 1 )
+        if ( user.emailStatus != EmailStatus.Verified && user.accountDays > 100 )
         {
             this.statusCode = StatusCode.EMAIL_NOT_VERIFIED;
 
@@ -238,8 +232,6 @@ export default class Authorizer
 
         const res = cache.set<UserRecord>( key, user );
 
-        console.info( "cached: ", res, cache.keys( ), cache.has( key ) );
-        
         return res;
     }
 
@@ -263,20 +255,13 @@ export default class Authorizer
 
         if( this.validateCookie( ) )
         {
-            console.info( `has cookie` );
-
             user = this.retreiveUser( this.username, this.email );
 
             if( !user )
             {
-                console.info( ` there is no cookie in cache. `);
-
                 user = await ignitionDb.findUser( this.username, this.email );
 
-                if( ! this.cacheUser( user ) )
-                {
-                    console.info( `could not insert user in cache. `); 
-                }
+                this.cacheUser( user ); 
             }
 
             if( !user )
@@ -291,11 +276,8 @@ export default class Authorizer
             return user;
         }
 
-        console.info(` no token`);
-        
         if( !this.extractAuth( ) )
         {
-            console.info( `no auth `);
             return;
         }
 

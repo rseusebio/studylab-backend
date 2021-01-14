@@ -6,6 +6,10 @@ const context: ContextFunction<ExpressContext, any> = ( { req, res }: ExpressCon
     
     const authorizer: Authorizer = new Authorizer( req?.headers?.cookie, req?.headers?.authorization, res );
 
+    const origin = req.get( "origin" );
+
+    res.setHeader( "Access-Control-Allow-Origin", origin );
+
     return {
         authorizer,
     };

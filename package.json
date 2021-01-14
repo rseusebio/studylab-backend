@@ -5,7 +5,7 @@
   "main": "app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run build && npm run execute",
+    "start": "export NODE_ENV=development && npm run build && npm run execute",
     "build": "npx tsc",
     "execute": "/home/rseusebio/Codes/venvs/node/node_12.18.3/bin/node ./build/server.js",
     "reset": "rm -rf ./build/ ./node_modules && npm i --save && npm run start"
@@ -15,6 +15,7 @@
   "devDependencies": {
     "@types/config": "0.0.36",
     "@types/cookie-parser": "^1.4.2",
+    "@types/cors": "^2.8.9",
     "@types/crypto-js": "^3.1.47",
     "@types/email-validator": "^1.0.6",
     "@types/express": "^4.17.9",
@@ -32,6 +33,7 @@
     "apollo-server-express": "^2.19.0",
     "config": "^3.3.3",
     "cookie-parser": "^1.4.5",
+    "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
     "email-validator": "^2.0.4",
     "express": "^4.17.1",
