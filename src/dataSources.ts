@@ -1,9 +1,13 @@
-import IgnitionDb from "./datasources/IgnitionDb";
+import { ignitionDb, cache } from "./datasources";
 
 const dataSources = () => {
-    return  {
-        ignitionDb: new IgnitionDb()
+    
+    const sources =   {
+        ignitionDb, 
+        cache
     };  
+
+    return sources;
 }
 
 export default dataSources;

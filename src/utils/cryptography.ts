@@ -1,6 +1,10 @@
-import      CryptoJS, { CipherOption }   from       "crypto-js";
-import      config                       from       "config";
-import      AuthConfig               from       "../classes/config/AuthConfig";
+import      CryptoJS, { CipherOption }    from       "crypto-js";
+import      config                        from       "config";
+import      AuthConfig                    from       "../classes/config/AuthConfig";
+import      crypto                        from       "crypto";
+import      fs                            from       "fs";
+import      path                          from       "path";
+import      EncryptionConfig              from       "../classes/config/EncryptionConfig";
 
 const encrypt = ( msg: string, secret: string, hashSecret: string  ): string => {
 
@@ -51,10 +55,50 @@ const hashMessage = ( msg: string, hashSecret: string ): string => {
     return CryptoJS.SHA512( wordArray, hashSecret ).toString( CryptoJS.enc.Base64 );
 }
 
+class CryptoManager
+{
+    private publicKey:  Buffer;
+    private privateKey: Buffer;
+
+    constructor( privateFile: string, publicFile: string )
+    {
+        this.privateKey = fs.readFileSync( privateFile );
+        this.publicKey  = fs.readFileSync( publicFile );
+    }
+
+    encrypt( msg: string ): string 
+    {
+        return crypto.publicEncrypt( this.publicKey, Buffer.from( msg ) ).toString( "base64" );
+    }
+
+    decrypt( msg: string ): string
+    {
+        return crypto.privateDecrypt( this.privateKey, Buffer.from( msg ) ).toString( "utf-8" );
+    }
+
+    createKeys( dir: string ): void
+    {   
+        let publicKeyFile  = path.join( dir, "public_key.pem" );
+        let privateKeyFile = path.join( dir, "private_key.pem" );
+
+        const { privateKey, publicKey } = crypto.generateKeyPairSync( "rsa", { modulusLength: 4096 } );
+
+        fs.writeFileSync( publicKeyFile, publicKey.export( { type: "pkcs1", format: "pem" } ) );
+
+        fs.writeFileSync( privateKeyFile, privateKey.export( { type: "pkcs1", format: "pem" } )  );
+    } 
+}
+
+const { publicKeyFile, privateKeyFile } = config.get<EncryptionConfig>( "Encryption" );
+const cryptoManager = new CryptoManager( privateKeyFile, publicKeyFile );
+
+export default cryptoManager;
+
 export {
     encrypt,
     decrypt, 
-    hashMessage
+    hashMessage,
+    CryptoManager,
 }
 
 

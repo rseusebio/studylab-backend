@@ -22,8 +22,7 @@ const server = new ApolloServer({
 });
 
 const whiteList = [
-    "http://localhost:3000", 
-    ""
+    "http://localhost:3000"
 ]
 
 

@@ -4,9 +4,8 @@ import { gql } from 'apollo-server';
 const User = `
 type User
 {
-    id:             ID!
-    username:       String!
-    email:          String!
+    username:       String
+    ebhuserid:      string
     emailStatus:    Int
     accountStatus:  Int
     creationDate:   String
@@ -84,8 +83,8 @@ const QueryResponses = ListBooksResponse;
 //#endregion
 
 //#region ============= MUTATION RESPONSES  ============
-const SignInResponse = `
-type SignInResponse
+const SignUpResponse = `
+type SignUpResponse
 {
     statusCode:   Int!
     user:         User
@@ -99,7 +98,6 @@ type LogInResponse
     user:        User
     elapsedTime: Float
 }`;
-
 
 const UploadBookResponse = `
 type UploadBookResponse 
@@ -115,7 +113,7 @@ type UploadBookResponse
     uploadDate:    String
 }`;
 
-const MutationResponses = SignInResponse + LogInResponse + UploadBookResponse;
+const MutationResponses = SignUpResponse + LogInResponse + UploadBookResponse;
 //#endregion
 
 const Query = `
@@ -133,7 +131,7 @@ type Query
 const Mutation = `
 type Mutation 
 {
-    signIn( username: String!, email: String!, password: String! ): SignInResponse!
+    signUp: SignUpResponse!
 
     logIn: LogInResponse!
 

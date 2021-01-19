@@ -1,10 +1,10 @@
-import     signIn       from    "./signIn";
+import     signUp       from    "./signUp";
 import     uploadBook   from    "./uploadBook";
 import     logIn        from    "./logIn";
 
 const  Mutation = {
     // sign up to the site 
-    signIn,
+    signUp,
     
     logIn, 
 

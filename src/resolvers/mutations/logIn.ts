@@ -1,15 +1,20 @@
-import      InternalContext      from    "../../classes/InternalContext";
+import      IContext             from    "../../classes/IContext";
 import      LogInResponse        from    "../../classes/mutations/logIn/LogInResponse";
+import      { StatusCode }       from    "../../classes/Status";
 
-const logIn = async ( _: any, __: any, { dataSources:{ ignitionDb }, authorizer }: InternalContext ) => {
-
-    const startTime = Date.now( );
-
+const logIn = async ( _: any, __: any, { dataSources:{ ignitionDb }, authorizer }: IContext ) => 
+{
     const res = new LogInResponse( );
+
+    if( authorizer.statusCode != StatusCode.OK )
+    {
+        res.statusCode = authorizer.statusCode;
+
+        return res;
+    }
 
     res.user          =  await authorizer.logIn( { ignitionDb } );
     res.statusCode    =  authorizer.statusCode;
-    res.elapsedTime   =  ( Date.now( ) - startTime ) / 1000;
 
     return res;
 }

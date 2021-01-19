@@ -9,7 +9,7 @@ import      util                                        from "util";
 import      stream                                      from "stream";
 import      path                                        from "path";
 import      fs                                          from "fs";
-import      { UserRecord }                              from "../classes/mutations/signIn";
+import      { UserRecord }                              from "../classes/mutations/signUp";
 import      { StatusCode }                              from "../classes/Status";
 import      { PageRecord,
               BookRecord }                              from '../classes/mutations/uploadBook';
@@ -290,7 +290,6 @@ class IgnitionDb extends DataSource
         }
     }
 
-
     async removeBookRecord( bookId: string ): Promise<boolean>
     {
         if (await this.connect () == false)
@@ -377,4 +376,10 @@ class IgnitionDb extends DataSource
     
 }
 
-export default IgnitionDb;
+const db = new IgnitionDb( );
+
+export default db;
+
+export {
+    IgnitionDb
+}
