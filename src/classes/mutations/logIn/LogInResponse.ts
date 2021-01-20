@@ -3,9 +3,9 @@ import  { UserRecord }      from    "../signUp";
 
  class LogInResponse
 {
-    public statusCode:     StatusCode;
-    public user:           UserRecord;
-    public _startTime:     number;
+    public      statusCode:     StatusCode;
+    public      user:           UserRecord;
+    private     _startTime:     number;
 
     get elapsedTime() :number
     {

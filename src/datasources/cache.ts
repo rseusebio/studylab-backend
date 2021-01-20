@@ -16,9 +16,18 @@ class CacheManager extends DataSource
 
         this.cache = new NodeCache( { ...cacheConfig } );
     }
-    
-    cacheUser( key: string, user: UserRecord ): boolean
+
+    userKey( username: string, password: string, email: string ): string
     {
+        return username + "::" + password + "::" + email;
+    }
+
+    cacheUser( user: UserRecord ): boolean
+    {
+        const { username , password, email } = user;
+
+        const key = this.userKey( username , password, email );
+
         try
         {
             return this.cache.set( key, user );

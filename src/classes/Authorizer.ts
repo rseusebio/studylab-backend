@@ -2,26 +2,29 @@ import      UserRecord,
             { AccountStatus, 
               EmailStatus }              from       "./mutations/signUp/UserRecord";
 import      { StatusCode      }          from       "./Status";
-import      config                       from       "config";
-import      AuthConfig                   from       "./config/AuthConfig";
-import      DataSources                  from       "../classes/DataSources";
-import      { decrypt, 
-              encrypt, 
-              hashMessage }              from       "../utils/cryptography";
+import      cryptoManager                from       "../utils/cryptography";
+import      ignitionDb                   from       "../datasources/IgnitionDb";
+import      { cache }                    from       "../datasources";
 
 export default class Authorizer 
 {   
-    public  statusCode:  StatusCode;
-    
-    public  username:    string | undefined;
-    public  email:       string | undefined;   
-    public  password:    string | undefined;
+    public      statusCode:  StatusCode;
+    public      username:    string | undefined;
+    public      email:       string | undefined;   
+    public      password:    string | undefined;
 
     constructor( auth: string ) 
     {   
         this.extract( auth );
     }
 
+    private setCredentials( user: UserRecord )
+    {
+        this.username   = user.username;
+        this.email      = user.email;
+        this.password   = user.password;
+    }
+    
     public extract( auth: string ): boolean
     {
         if( !auth )
@@ -44,16 +47,16 @@ export default class Authorizer
             return false;
         }
 
-        const logInInfo = Buffer.from( credentials, "base64" ).toString( "utf-8" );
+        const userInfo = Buffer.from( credentials, "base64" ).toString( "utf-8" );
 
-        if( !logInInfo )
+        if( !userInfo )
         {
             this.statusCode = StatusCode.INVALID_CREDENTIAL;
         }
 
-        // this content should be encrypted
+        let decryptedCredential = cryptoManager.decrypt( userInfo );
 
-        const [ username, email, pwd ] = logInInfo.split( ":" );
+        const [ username, email, pwd ] = decryptedCredential.split( ":" );
 
         if ( !username || !pwd || !email )
         {
@@ -62,11 +65,9 @@ export default class Authorizer
             return false;
         }
         
-        const { Keys } = config.get<AuthConfig>( "Authentication" );
-
-        this.username  = username;
-        this.email     = email;
-        this.password  = hashMessage( pwd, Keys.get( "Auth" ).HashKey );
+        this.username  =    username;
+        this.email     =    email;
+        this.password  =    pwd;
 
         this.statusCode = StatusCode.OK;
 
@@ -94,9 +95,25 @@ export default class Authorizer
         return true;
     }
 
-    public async logIn( { ignitionDb }: DataSources ): Promise<UserRecord>
+    public async logIn( ): Promise<UserRecord>
     {
         let user: UserRecord = null;
+
+        let key = cache.userKey( this.username, this.password, this.email );
+
+        user = cache.getUser( key )
+
+        if( user )
+        {
+            this.statusCode = StatusCode.SUCCEEDED;
+
+            if( !this.validateUser( user ))
+            {
+                return null;
+            }
+
+            return user;
+        }
 
         user = await ignitionDb.verifyCrendentials( this.username, this.password );
 
@@ -109,11 +126,22 @@ export default class Authorizer
 
         if( !this.validateUser( user ) )
         {
-            return;
+            return null;
         }
-    
+
+        this.setCredentials( user );
+
+        cache.cacheUser( user );
+
         this.statusCode = StatusCode.SUCCEEDED;
 
         return user;
+    }
+
+    public getUser( ): UserRecord
+    {
+        const key = cache.userKey( this.username, this.password, this.email );
+
+        return cache.getUser( key );
     }
 }

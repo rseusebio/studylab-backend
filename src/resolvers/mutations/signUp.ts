@@ -1,23 +1,16 @@
-import  IContext                     from   "../../classes/IContext";
-import  { SignUpResponse, UserRecord }           from   "../../classes/mutations/signUp";
-import  { StatusCode }               from   "../../classes/Status";
-import  config                       from   "config";
-import  { hashMessage }              from   "../../utils/cryptography";
-import  AuthConfig                   from   "../../classes/config/AuthConfig";
-import validateUserInfo from "../../utils/validation";
+import      IContext                     from       "../../classes/IContext";
+import      { SignUpResponse }           from       "../../classes/mutations/signUp";
+import      { StatusCode }               from       "../../classes/Status";
+import      config                       from       "config";
+import      { hashMessage }              from       "../../utils/cryptography";
+import      AuthConfig                   from       "../../classes/config/AuthConfig";
+import      validateUserInfo             from       "../../utils/validation";
 
 const signUp = async ( _: any, __:any , { dataSources, authorizer }: IContext ): Promise<SignUpResponse> => 
 {
     const { ignitionDb, cache } = dataSources;
 
     const res = new SignUpResponse( );
-
-    const { username, password, email } = authorizer;
-
-    // ToDo:
-    // DO I REALLY NEED TO DO THIS ?
-    // a. Login and Password should be encrypted 
-    // b. decrypt them
 
     //#region VALIDATING USER INFORMATION
     if( authorizer.statusCode != StatusCode.OK )
@@ -26,6 +19,8 @@ const signUp = async ( _: any, __:any , { dataSources, authorizer }: IContext ):
 
         return res;
     }
+
+    const { username, password, email } = authorizer;
     
     const userInfoStatus = validateUserInfo( username, email, password );
 
@@ -70,7 +65,7 @@ const signUp = async ( _: any, __:any , { dataSources, authorizer }: IContext ):
         return res;
     }
 
-    cache.cacheUser( username, res.user );
+    cache.cacheUser( res.user );
 
     res.statusCode = StatusCode.SUCCEEDED;
     

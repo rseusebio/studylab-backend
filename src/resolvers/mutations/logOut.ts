@@ -1,7 +1,7 @@
-import InternalContext from "../../classes/InternalContext";
-import LogInResponse from "../../classes/mutations/logIn/LogInResponse";
+import  IContext        from    "../../classes/IContext";
+import  LogInResponse   from    "../../classes/mutations/logIn/LogInResponse";
 
-const logOut = async ( _: any, __: any, { dataSources, authorizer }: InternalContext ) => {
+const logOut = async ( _: any, __: any, { dataSources, authorizer }: IContext ) => {
 
     const startTime = Date.now( );
 
@@ -10,7 +10,7 @@ const logOut = async ( _: any, __: any, { dataSources, authorizer }: InternalCon
     // await authorizer.authenticate( dataSources, true );
 
     res.statusCode  = authorizer.statusCode;
-    res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
+    // res.elapsedTime = ( Date.now( ) - startTime ) / 1000;
 
     return res;
 }

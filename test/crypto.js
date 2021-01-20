@@ -27,6 +27,7 @@ data2 = fs.readFileSync( privateKeyFile );
 //#region TEST2
 const msg2 = crypto.privateDecrypt( data2, Buffer.from( encryptedMsg, "base64" ) ).toString( "utf-8" );
 console.info( `msg2: `, msg2 ); 
+
 const encrypted = crypto.publicEncrypt( data1, Buffer.from( message ) ).toString( "base64" );
 const msg3 = crypto.privateDecrypt( privateKey, Buffer.from( encryptedMsg, "base64" ) ).toString( "utf-8" );
 console.info( "msg3: ", msg3 );

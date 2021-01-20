@@ -23,9 +23,9 @@ export default class UserRecord
     _creationDate:   Date;
     lastUpdateDate:  Date;
     lastLoginDate:   Date;
+    lastLogOutDate:  Date;
 
     isLogged:       boolean;
-    enabled:        boolean;
     emailStatus:    EmailStatus;
     accountStatus:  AccountStatus;
 
@@ -41,10 +41,14 @@ export default class UserRecord
 
     public get accountDays( )
     {
-        const accountDays = Math.round( ( Date.now( ) - this._creationDate.valueOf( ) ) / 1000 / 60 / 60 / 24 );
+        const delta =  Date.now( ) - this._creationDate.valueOf( );
+        
+        // milliseconds in a day
+        const conversionRate = 1000 * 60 * 60 * 24; 
+
+        const accountDays = Math.round( delta / conversionRate );
 
         return accountDays;
-
     }
     
     constructor( username: string, email: string, pwd: string )
@@ -60,15 +64,11 @@ export default class UserRecord
         this._creationDate   =    now;
         this.lastLoginDate   =    now;
         this.lastUpdateDate  =    now;
-
-        this.isLogged       =    true;
-        this.enabled        =    true;
+        this.lastLogOutDate  =    null;
 
         this.emailStatus    =    EmailStatus.Pending;
         this.accountStatus  =    AccountStatus.Active;
     }
-
-
 }
 
 export {
